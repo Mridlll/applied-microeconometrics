@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-refresh platform data
     setInterval(loadPlatformData, REFRESH_INTERVAL);
+
+    // Load leaderboard data after a short delay
+    setTimeout(() => {
+        loadLeaderboardData();
+    }, 2000);
 });
 
 /**
@@ -61,6 +66,9 @@ function setupEventListeners() {
             loadUserAnalytics();
         }
     });
+
+    // Load leaderboard data button
+    document.getElementById('loadLeaderboardData').addEventListener('click', loadLeaderboardData);
 }
 
 /**
@@ -231,6 +239,9 @@ function updatePlatformMetrics(data) {
     document.getElementById('tradfiPerpsCount').textContent = tradfiPerps.count || 0;
     document.getElementById('tradfiPerpsVolume').textContent = formatCurrency(tradfiPerps.total_volume || 0);
     document.getElementById('tradfiPerpsOI').textContent = formatCurrency(tradfiPerps.total_oi || 0);
+
+    // Load detailed TradFi analytics
+    loadTradFiDetailedAnalytics();
 }
 
 /**
@@ -543,6 +554,197 @@ function updateUserFillsTable(fills) {
         `;
         tbody.appendChild(row);
     });
+}
+
+/**
+ * Load all leaderboard and advanced analytics data
+ */
+async function loadLeaderboardData() {
+    console.log('Loading leaderboard and analytics data...');
+    const hoursBack = parseInt(document.getElementById('leaderboardWindow').value);
+
+    try {
+        await Promise.all([
+            loadTopTraders(hoursBack),
+            loadLargeTradesAnalytics(),
+            loadTradeSizeAnalytics()
+        ]);
+        console.log('Leaderboard data loaded successfully');
+    } catch (error) {
+        console.error('Error loading leaderboard data:', error);
+    }
+}
+
+/**
+ * Load top traders leaderboard
+ */
+async function loadTopTraders(hoursBack = 24) {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/leaderboard/top-traders?hours_back=${hoursBack}&limit=50`);
+        const traders = response.data;
+
+        const tableBody = document.getElementById('topTradersTable');
+        if (!traders || traders.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="loading">No leaderboard data available</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = traders.map(trader => {
+            const shortAddress = trader.user.length > 10
+                ? `${trader.user.slice(0, 6)}...${trader.user.slice(-4)}`
+                : trader.user;
+
+            const pnlClass = trader.pnl >= 0 ? 'positive' : 'negative';
+            const pnlSign = trader.pnl >= 0 ? '+' : '';
+
+            return `
+                <tr>
+                    <td><strong>${trader.rank}</strong></td>
+                    <td><code>${shortAddress}</code></td>
+                    <td>${formatCurrency(trader.account_value)}</td>
+                    <td class="${pnlClass}">${pnlSign}${formatCurrency(trader.pnl)}</td>
+                    <td class="${pnlClass}">${pnlSign}${trader.pnl_pct.toFixed(2)}%</td>
+                    <td>${formatCurrency(trader.vlm)}</td>
+                    <td>${trader.n_trades.toLocaleString()}</td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log(`Loaded ${traders.length} top traders`);
+    } catch (error) {
+        console.error('Error loading top traders:', error);
+        document.getElementById('topTradersTable').innerHTML =
+            '<tr><td colspan="7" class="error">Error loading leaderboard data</td></tr>';
+    }
+}
+
+/**
+ * Load large and interesting trades across markets
+ */
+async function loadLargeTradesAnalytics() {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/leaderboard/platform-analytics`);
+        const data = response.data;
+
+        const largeTradesTable = document.getElementById('largeTradesTable');
+        if (!data || !data.largest_trades || data.largest_trades.length === 0) {
+            largeTradesTable.innerHTML = '<tr><td colspan="6" class="loading">No large trades found</td></tr>';
+            return;
+        }
+
+        const trades = data.largest_trades.slice(0, 20); // Top 20 largest
+        largeTradesTable.innerHTML = trades.map(trade => {
+            const sideClass = trade.side === 'BUY' ? 'positive' : 'negative';
+            const timeAgo = formatTimestamp(new Date(trade.time).getTime());
+
+            return `
+                <tr>
+                    <td>${timeAgo}</td>
+                    <td><strong>${trade.coin}</strong></td>
+                    <td class="${sideClass}">${trade.side}</td>
+                    <td>$${trade.price.toLocaleString()}</td>
+                    <td>${trade.size.toFixed(4)}</td>
+                    <td><strong>${formatCurrency(trade.value_usd)}</strong></td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log(`Loaded ${trades.length} large trades`);
+    } catch (error) {
+        console.error('Error loading large trades:', error);
+        document.getElementById('largeTradesTable').innerHTML =
+            '<tr><td colspan="6" class="error">Error loading large trades</td></tr>';
+    }
+}
+
+/**
+ * Load trade size analytics across top markets
+ */
+async function loadTradeSizeAnalytics() {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/leaderboard/trade-sizes`);
+        const data = response.data;
+
+        const tradeSizeTable = document.getElementById('tradeSizeTable');
+        if (!data || data.length === 0) {
+            tradeSizeTable.innerHTML = '<tr><td colspan="7" class="loading">No trade size data available</td></tr>';
+            return;
+        }
+
+        tradeSizeTable.innerHTML = data.map(stats => {
+            return `
+                <tr>
+                    <td><strong>${stats.coin}</strong></td>
+                    <td>${stats.total_trades.toLocaleString()}</td>
+                    <td>${formatCurrency(stats.avg_trade_size_usd)}</td>
+                    <td>${formatCurrency(stats.median_trade_size_usd)}</td>
+                    <td>${stats.small_trades_pct.toFixed(1)}%</td>
+                    <td>${stats.medium_trades_pct.toFixed(1)}%</td>
+                    <td>${stats.large_trades_pct.toFixed(1)}%</td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log(`Loaded trade size analytics for ${data.length} assets`);
+    } catch (error) {
+        console.error('Error loading trade size analytics:', error);
+        document.getElementById('tradeSizeTable').innerHTML =
+            '<tr><td colspan="7" class="error">Error loading trade size data</td></tr>';
+    }
+}
+
+/**
+ * Load detailed TradFi/Equity perpetuals analytics
+ */
+async function loadTradFiDetailedAnalytics() {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/tradfi/detailed-analytics`);
+        const data = response.data;
+
+        // Update overview cards
+        document.getElementById('tradfiAssetsCount').textContent = data.total_count || 0;
+        document.getElementById('tradfiTotalVolume').textContent = formatCurrency(data.total_volume_24h || 0);
+        document.getElementById('tradfiTotalOI').textContent = formatCurrency(data.total_open_interest || 0);
+
+        // Update percentages
+        const comparison = data.crypto_comparison || {};
+        document.getElementById('tradfiVolumePct').textContent = `${(comparison.tradfi_volume_pct || 0).toFixed(2)}%`;
+        document.getElementById('tradfiOIPct').textContent = `${(comparison.tradfi_oi_pct || 0).toFixed(2)}%`;
+
+        // Update assets table
+        const tradfiAssetsTable = document.getElementById('tradfiAssetsTable');
+        const assets = data.assets || [];
+
+        if (assets.length === 0) {
+            tradfiAssetsTable.innerHTML = '<tr><td colspan="8" class="loading">No TradFi assets found</td></tr>';
+            return;
+        }
+
+        tradfiAssetsTable.innerHTML = assets.map(asset => {
+            const changeClass = asset.change_24h >= 0 ? 'positive' : 'negative';
+            const changeSign = asset.change_24h >= 0 ? '+' : '';
+            const fundingClass = asset.funding_rate >= 0 ? 'positive' : 'negative';
+
+            return `
+                <tr>
+                    <td><strong>${asset.name}</strong></td>
+                    <td>$${asset.mark_price.toLocaleString()}</td>
+                    <td class="${changeClass}">${changeSign}${asset.change_24h.toFixed(2)}%</td>
+                    <td>${formatCurrency(asset.day_ntl_vlm)}</td>
+                    <td>${asset.volume_pct.toFixed(1)}%</td>
+                    <td>${formatCurrency(asset.open_interest)}</td>
+                    <td>${asset.oi_pct.toFixed(1)}%</td>
+                    <td class="${fundingClass}">${(asset.funding_rate * 100).toFixed(4)}%</td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log(`Loaded ${assets.length} TradFi assets with detailed analytics`);
+    } catch (error) {
+        console.error('Error loading TradFi analytics:', error);
+        document.getElementById('tradfiAssetsTable').innerHTML =
+            '<tr><td colspan="8" class="error">Error loading TradFi data</td></tr>';
+    }
 }
 
 /**

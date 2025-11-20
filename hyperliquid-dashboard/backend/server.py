@@ -8,6 +8,7 @@ from flask_cors import CORS
 from hyperliquid_api import HyperliquidAPI
 from analytics import PlatformAnalytics
 from advanced_analytics import HyperliquidAdvancedAnalytics
+from leaderboard_analytics import LeaderboardAnalytics
 import os
 import json
 from datetime import datetime, timedelta
@@ -19,6 +20,7 @@ CORS(app)  # Enable CORS for frontend
 api = HyperliquidAPI(use_testnet=False)
 analytics = PlatformAnalytics(data_dir=os.path.join(os.path.dirname(__file__), '..', 'data'))
 advanced = HyperliquidAdvancedAnalytics(use_testnet=False)
+leaderboard = LeaderboardAnalytics(use_testnet=False)
 
 # Cache for reducing API calls
 cache = {
@@ -265,6 +267,118 @@ def get_portfolio_value(user_address):
         window = request.args.get('window', 'day', type=str)
         portfolio = advanced.get_portfolio_value(user_address, window)
         return jsonify(portfolio)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/leaderboard/top-traders')
+def get_top_traders():
+    """Get top traders leaderboard - automatically populated"""
+    try:
+        hours_back = request.args.get('hours_back', 24, type=int)
+        limit = request.args.get('limit', 50, type=int)
+        traders = leaderboard.get_top_traders_by_volume(hours_back, limit)
+        return jsonify(traders)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/leaderboard/large-trades/<coin>')
+def get_large_trades(coin):
+    """Get large/interesting trades for specific asset"""
+    try:
+        threshold = request.args.get('threshold', 50000, type=float)
+        trades = leaderboard.analyze_large_trades(coin, threshold)
+        return jsonify(trades)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/leaderboard/trade-sizes')
+def get_trade_sizes():
+    """Get average trade size analytics across top assets"""
+    try:
+        summary = api.get_market_summary()
+        top_assets = sorted(summary.get("assets", []), key=lambda x: x["day_ntl_vlm"], reverse=True)[:10]
+        top_coins = [asset["name"] for asset in top_assets]
+
+        trade_size_analytics = []
+        for coin in top_coins:
+            try:
+                stats = leaderboard.calculate_average_trade_size(coin)
+                trade_size_analytics.append(stats)
+            except Exception as e:
+                print(f"Error analyzing {coin}: {e}")
+                continue
+
+        return jsonify(trade_size_analytics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/leaderboard/platform-analytics')
+def get_platform_analytics():
+    """Get comprehensive platform-wide analytics including top traders and large trades"""
+    try:
+        summary = api.get_market_summary()
+        top_assets = sorted(summary.get("assets", []), key=lambda x: x["day_ntl_vlm"], reverse=True)[:10]
+        top_coins = [asset["name"] for asset in top_assets]
+
+        analytics_data = leaderboard.get_platform_wide_analytics(top_coins)
+        return jsonify(analytics_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/leaderboard/asset-traders/<coin>')
+def get_asset_traders(coin):
+    """Get top traders for a specific asset"""
+    try:
+        hours_back = request.args.get('hours_back', 4, type=int)
+        traders = leaderboard.get_asset_specific_traders(coin, hours_back)
+        return jsonify(traders)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tradfi/detailed-analytics')
+def get_tradfi_analytics():
+    """
+    Get detailed analytics for TradFi/Equity perpetuals
+    Includes OI tracking, funding rates, liquidations, and microstructure changes
+    """
+    try:
+        summary = api.get_market_summary()
+        metrics = advanced.get_real_platform_metrics(summary)
+
+        # Get TradFi assets with detailed analytics
+        tradfi_data = metrics.get("tradfi_perps", {})
+        tradfi_assets = tradfi_data.get("assets", [])
+
+        # Sort by volume descending
+        tradfi_assets.sort(key=lambda x: x.get("day_ntl_vlm", 0), reverse=True)
+
+        # Add percentage of total for each asset
+        total_tradfi_volume = tradfi_data.get("total_volume", 1)
+        total_tradfi_oi = tradfi_data.get("total_oi", 1)
+
+        for asset in tradfi_assets:
+            asset["volume_pct"] = (asset.get("day_ntl_vlm", 0) / total_tradfi_volume * 100) if total_tradfi_volume > 0 else 0
+            asset["oi_pct"] = (asset.get("open_interest", 0) / total_tradfi_oi * 100) if total_tradfi_oi > 0 else 0
+
+        return jsonify({
+            "timestamp": summary.get("timestamp"),
+            "total_count": tradfi_data.get("count", 0),
+            "total_volume_24h": tradfi_data.get("total_volume", 0),
+            "total_open_interest": tradfi_data.get("total_oi", 0),
+            "assets": tradfi_assets,
+            "crypto_comparison": {
+                "crypto_volume": metrics.get("crypto_perps", {}).get("total_volume", 0),
+                "crypto_oi": metrics.get("crypto_perps", {}).get("total_oi", 0),
+                "tradfi_volume_pct": (tradfi_data.get("total_volume", 0) / metrics.get("total_volume_24h", 1) * 100) if metrics.get("total_volume_24h") > 0 else 0,
+                "tradfi_oi_pct": (tradfi_data.get("total_oi", 0) / metrics.get("total_open_interest", 1) * 100) if metrics.get("total_open_interest") > 0 else 0
+            }
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

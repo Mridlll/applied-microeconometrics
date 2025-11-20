@@ -227,20 +227,33 @@ class HyperliquidAdvancedAnalytics:
     def analyze_asset_category(self, assets: List[Dict]) -> Dict:
         """
         Categorize assets into Crypto Perps vs TradFi/Equity Perps
-        Based on asset naming conventions
+        Based on asset naming conventions with exact matching
         """
         crypto_perps = []
         tradfi_perps = []
 
-        # Common TradFi/equity tickers
-        tradfi_indicators = ["SPX", "NDX", "DJI", "AAPL", "TSLA", "MSFT", "GOOGL",
-                             "AMZN", "NVDA", "META", "NFLX", "SPY", "QQQ"]
+        # Comprehensive TradFi indicators: stocks, indices, commodities, forex
+        # Using exact matches to avoid false positives (e.g., COIN != FARTCOIN)
+        tradfi_exact_names = {
+            # US Indices
+            "SPX", "NDX", "DJI", "SPY", "QQQ", "IWM", "VIX",
+            # Major Tech Stocks
+            "AAPL", "TSLA", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "NFLX",
+            # Other Stocks
+            "AMD", "INTC", "COIN", "GME", "AMC", "BABA", "TSM", "MSTR",
+            # Commodities & Precious Metals
+            "PAXG", "GOLD", "SILVER", "XAU", "XAG", "OIL", "WTI", "BRENT",
+            # Forex
+            "EUR", "JPY", "GBP", "AUD", "CHF", "CAD", "NZD",
+            # Other Indices
+            "FTSE", "DAX", "NIKKEI", "HSI", "KOSPI"
+        }
 
         for asset in assets:
-            name = asset.get("name", "")
+            name = asset.get("name", "").upper().strip()
 
-            # Check if it's a TradFi asset
-            is_tradfi = any(indicator in name.upper() for indicator in tradfi_indicators)
+            # Exact match for TradFi assets to avoid false positives
+            is_tradfi = name in tradfi_exact_names
 
             if is_tradfi:
                 tradfi_perps.append(asset)

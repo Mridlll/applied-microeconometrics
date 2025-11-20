@@ -125,6 +125,74 @@
             </div>
         </section>
 
+        <!-- TradFi/Equity Perpetuals Detailed Analytics -->
+        <section class="tradfi-analytics">
+            <div class="section-header">
+                <h2>TradFi/Equity Perpetuals - Detailed Analytics</h2>
+                <p class="section-subtitle">Comprehensive tracking of all traditional finance perpetual contracts</p>
+            </div>
+
+            <!-- TradFi Overview Cards -->
+            <div class="metrics-grid">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Total TradFi Assets</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="tradfiAssetsCount">0</div>
+                        <div class="metric-subtitle">Active equity perps</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>TradFi 24h Volume</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="tradfiTotalVolume">$0</div>
+                        <div class="metric-subtitle"><span id="tradfiVolumePct">0%</span> of total</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>TradFi Open Interest</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="tradfiTotalOI">$0</div>
+                        <div class="metric-subtitle"><span id="tradfiOIPct">0%</span> of total</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed TradFi Assets Table -->
+            <div class="card table-card full-width">
+                <div class="card-header">
+                    <h3>All TradFi/Equity Perpetuals</h3>
+                    <p class="card-subtitle">Real-time OI, volume, funding rates, and microstructure data</p>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Volume (24h)</th>
+                                <th>Vol %</th>
+                                <th>Open Interest</th>
+                                <th>OI %</th>
+                                <th>Funding Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradfiAssetsTable">
+                            <tr><td colspan="8" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- Granular Market Data -->
         <section class="granular-section">
             <div class="section-header">
@@ -310,6 +378,104 @@
                         </thead>
                         <tbody id="userFillsTable">
                             <tr><td colspan="8" class="loading">No data loaded</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Analytics - Leaderboard -->
+        <section class="leaderboard-section">
+            <div class="section-header">
+                <h2>Platform Analytics & Leaderboard</h2>
+                <p class="section-subtitle">Top traders, large trades, and market microstructure analytics</p>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <select id="leaderboardWindow" class="input-select">
+                        <option value="24">24 Hours</option>
+                        <option value="168">7 Days</option>
+                        <option value="720">30 Days</option>
+                    </select>
+                </div>
+                <button id="loadLeaderboardData" class="btn-primary">Refresh Analytics</button>
+            </div>
+
+            <!-- Top Traders Leaderboard -->
+            <div class="card table-card full-width">
+                <div class="card-header">
+                    <h3>Top Traders Leaderboard</h3>
+                    <p class="card-subtitle">Automatically populated from Hyperliquid leaderboard</p>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Trader</th>
+                                <th>Account Value</th>
+                                <th>PnL</th>
+                                <th>PnL %</th>
+                                <th>Volume</th>
+                                <th>Trades</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topTradersTable">
+                            <tr><td colspan="7" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Large Trades -->
+            <div class="card table-card full-width">
+                <div class="card-header">
+                    <h3>Large & Interesting Trades</h3>
+                    <p class="card-subtitle">Recent trades over $50k across top markets</p>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Asset</th>
+                                <th>Side</th>
+                                <th>Price</th>
+                                <th>Size</th>
+                                <th>Value (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="largeTradesTable">
+                            <tr><td colspan="6" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Trade Size Analytics -->
+            <div class="card table-card full-width">
+                <div class="card-header">
+                    <h3>Average Trade Size Analytics</h3>
+                    <p class="card-subtitle">Trade size distribution across top markets</p>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Total Trades</th>
+                                <th>Avg Trade Size</th>
+                                <th>Median Trade Size</th>
+                                <th>Small Trades %</th>
+                                <th>Medium Trades %</th>
+                                <th>Large Trades %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradeSizeTable">
+                            <tr><td colspan="7" class="loading">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
