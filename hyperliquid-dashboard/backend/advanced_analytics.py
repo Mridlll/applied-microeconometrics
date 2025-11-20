@@ -228,21 +228,23 @@ class HyperliquidAdvancedAnalytics:
         """
         Categorize assets into Crypto Perps vs TradFi/Equity Perps
         Based on asset naming conventions with exact matching
+        Handles both plain tickers and TICKER-USDC format
         """
         crypto_perps = []
         tradfi_perps = []
 
         # Comprehensive TradFi indicators: stocks, indices, commodities, forex
-        # Using exact matches to avoid false positives (e.g., COIN != FARTCOIN)
-        tradfi_exact_names = {
-            # US Indices
-            "SPX", "NDX", "DJI", "SPY", "QQQ", "IWM", "VIX",
-            # Major Tech Stocks
-            "AAPL", "TSLA", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "NFLX",
-            # Other Stocks
-            "AMD", "INTC", "COIN", "GME", "AMC", "BABA", "TSM", "MSTR",
+        # Using exact matches to avoid false positives
+        tradfi_base_tickers = {
+            # Hyperliquid Equity Perps (TICKER-USDC format)
+            "NVDA", "GOOGL", "TSLA", "PLTR", "AMZN", "MSFT", "META",
+            "GOLD", "HOOD", "INTC", "COIN", "AAPL", "ORCL", "AMD", "MU",
+            # Indices
+            "SPX", "XYZ100", "NDX", "DJI", "SPY", "QQQ", "IWM", "VIX",
+            # Other stocks that might be added
+            "NFLX", "GME", "AMC", "BABA", "TSM", "MSTR", "GOOG",
             # Commodities & Precious Metals
-            "PAXG", "GOLD", "SILVER", "XAU", "XAG", "OIL", "WTI", "BRENT",
+            "PAXG", "SILVER", "XAU", "XAG", "OIL", "WTI", "BRENT",
             # Forex
             "EUR", "JPY", "GBP", "AUD", "CHF", "CAD", "NZD",
             # Other Indices
@@ -252,8 +254,13 @@ class HyperliquidAdvancedAnalytics:
         for asset in assets:
             name = asset.get("name", "").upper().strip()
 
-            # Exact match for TradFi assets to avoid false positives
-            is_tradfi = name in tradfi_exact_names
+            # Extract base ticker if in TICKER-USDC format
+            base_ticker = name
+            if "-USDC" in name:
+                base_ticker = name.replace("-USDC", "")
+
+            # Check if base ticker matches any TradFi asset
+            is_tradfi = base_ticker in tradfi_base_tickers
 
             if is_tradfi:
                 tradfi_perps.append(asset)
