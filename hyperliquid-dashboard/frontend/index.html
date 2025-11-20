@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyperliquid Trading Dashboard | trade.xyz</title>
+    <title>Hyperliquid Analytics | trade.xyz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -16,8 +16,8 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <h1>📊 Hyperliquid Dashboard</h1>
-                <p class="subtitle">Real-time trading analytics powered by trade.xyz</p>
+                <h1>Hyperliquid Analytics</h1>
+                <p class="subtitle">Real-time perpetuals trading analytics | Powered by trade.xyz</p>
             </div>
             <div class="header-stats">
                 <div class="stat-box">
@@ -33,25 +33,25 @@
             </div>
         </header>
 
-        <!-- Market Overview Cards -->
+        <!-- Platform Overview -->
         <section class="overview">
             <div class="card metric-card">
                 <div class="card-header">
-                    <h3>Total 24h Volume</h3>
+                    <h3>24h Volume</h3>
                 </div>
                 <div class="card-body">
                     <div class="metric-value" id="totalVolume">$0</div>
-                    <div class="metric-subtitle">Across all markets</div>
+                    <div class="metric-subtitle">All markets</div>
                 </div>
             </div>
 
             <div class="card metric-card">
                 <div class="card-header">
-                    <h3>Total Open Interest</h3>
+                    <h3>Open Interest</h3>
                 </div>
                 <div class="card-body">
                     <div class="metric-value" id="totalOI">$0</div>
-                    <div class="metric-subtitle">All perpetuals</div>
+                    <div class="metric-subtitle">Total OI</div>
                 </div>
             </div>
 
@@ -65,336 +65,120 @@
                 </div>
             </div>
 
-            <div class="card metric-card">
+            <div class="card metric-card revenue-card">
                 <div class="card-header">
-                    <h3>Avg Funding Rate</h3>
+                    <h3>Platform Revenue (24h)</h3>
                 </div>
                 <div class="card-body">
-                    <div class="metric-value" id="avgFunding">0%</div>
-                    <div class="metric-subtitle">Hourly rate</div>
+                    <div class="metric-value" id="platformRevenue">$0</div>
+                    <div class="metric-subtitle">Real fee calculations</div>
                 </div>
             </div>
         </section>
 
-        <!-- Platform Activity Metrics -->
+        <!-- Asset Categories -->
         <section class="platform-metrics">
             <div class="section-header">
-                <h2>📊 Platform Activity & User Metrics</h2>
-                <p class="section-subtitle">Estimated metrics based on trading volume and open interest</p>
+                <h2>Asset Categories</h2>
+                <p class="section-subtitle">Crypto perpetuals vs TradFi/Equity perpetuals breakdown</p>
             </div>
 
             <div class="metrics-grid">
                 <div class="card metric-card">
                     <div class="card-header">
-                        <h3>Estimated Total Users</h3>
+                        <h3>Crypto Perps</h3>
                     </div>
                     <div class="card-body">
-                        <div class="metric-value" id="estimatedUsers">-</div>
-                        <div class="metric-subtitle">Platform-wide</div>
+                        <div class="metric-value" id="cryptoPerpsCount">0</div>
+                        <div class="metric-subtitle" style="margin-top: 12px;">
+                            Volume: <strong id="cryptoPerpsVolume">$0</strong><br>
+                            OI: <strong id="cryptoPerpsOI">$0</strong>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card metric-card">
                     <div class="card-header">
-                        <h3>Active Users (24h)</h3>
+                        <h3>TradFi/Equity Perps</h3>
                     </div>
                     <div class="card-body">
-                        <div class="metric-value" id="activeUsers">-</div>
-                        <div class="metric-subtitle">Trading in last 24h</div>
+                        <div class="metric-value" id="tradfiPerpsCount">0</div>
+                        <div class="metric-subtitle" style="margin-top: 12px;">
+                            Volume: <strong id="tradfiPerpsVolume">$0</strong><br>
+                            OI: <strong id="tradfiPerpsOI">$0</strong>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card metric-card">
                     <div class="card-header">
-                        <h3>Estimated Trades (24h)</h3>
+                        <h3>Fee Structure</h3>
                     </div>
                     <div class="card-body">
-                        <div class="metric-value" id="estimatedTrades">-</div>
-                        <div class="metric-subtitle">Daily transactions</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div class="card-header">
-                        <h3>Days Tracked</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="daysTracked">0</div>
-                        <div class="metric-subtitle">Historical data points</div>
+                        <div class="metric-subtitle" style="margin-top: 8px;">
+                            <strong>Taker Fee:</strong> 0.045%<br>
+                            <strong>Maker Rebate:</strong> 0.015%<br>
+                            <strong>HIP-2 Multiplier:</strong> 2x
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Growth Metrics -->
-        <section class="growth-section">
+        <!-- Granular Market Data -->
+        <section class="granular-section">
             <div class="section-header">
-                <h2>📈 Growth Metrics</h2>
+                <h2>Market Charts</h2>
+                <p class="section-subtitle">Granular timeframe analysis</p>
             </div>
 
-            <div class="metrics-grid-small">
-                <div class="card growth-card">
-                    <div class="growth-label">Volume Growth (7d)</div>
-                    <div class="growth-value" id="volumeGrowth7d">-</div>
+            <!-- Asset Selector and Timeframe -->
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label for="assetSelect">Asset:</label>
+                    <select id="assetSelect" class="input-select">
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                        <option value="SOL">SOL</option>
+                    </select>
                 </div>
-
-                <div class="card growth-card">
-                    <div class="growth-label">Volume Growth (30d)</div>
-                    <div class="growth-value" id="volumeGrowth30d">-</div>
-                </div>
-
-                <div class="card growth-card">
-                    <div class="growth-label">OI Growth (7d)</div>
-                    <div class="growth-value" id="oiGrowth7d">-</div>
-                </div>
-
-                <div class="card growth-card">
-                    <div class="growth-label">OI Growth (30d)</div>
-                    <div class="growth-value" id="oiGrowth30d">-</div>
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <div class="timeframe-buttons">
+                        <button class="timeframe-btn active" data-interval="15m">15m</button>
+                        <button class="timeframe-btn" data-interval="1h">1h</button>
+                        <button class="timeframe-btn" data-interval="4h">4h</button>
+                        <button class="timeframe-btn" data-interval="1d">1d</button>
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Wallet Analytics -->
-        <section class="platform-metrics">
-            <div class="section-header">
-                <h2>💼 Wallet Analytics</h2>
-                <p class="section-subtitle">Active wallet distribution and user segmentation</p>
-            </div>
-
-            <div class="metrics-grid">
-                <div class="card metric-card">
+            <div class="charts-section">
+                <div class="card chart-card">
                     <div class="card-header">
-                        <h3>Total Wallets</h3>
+                        <h3>Price Chart</h3>
                     </div>
                     <div class="card-body">
-                        <div class="metric-value" id="totalWallets">-</div>
-                        <div class="metric-subtitle">Estimated unique wallets</div>
+                        <canvas id="priceChart"></canvas>
                     </div>
                 </div>
 
-                <div class="card metric-card">
+                <div class="card chart-card">
                     <div class="card-header">
-                        <h3>Active Wallets (24h)</h3>
+                        <h3>Volume Chart</h3>
                     </div>
                     <div class="card-body">
-                        <div class="metric-value" id="activeWallets">-</div>
-                        <div class="metric-subtitle">Trading in last 24h</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card whale-card">
-                    <div class="card-header">
-                        <h3>🐋 Whale Wallets</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="whaleWallets">-</div>
-                        <div class="metric-subtitle">>$500k positions</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div class="card-header">
-                        <h3>Large Wallets</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="largeWallets">-</div>
-                        <div class="metric-subtitle">$50k-$500k positions</div>
+                        <canvas id="volumeChart"></canvas>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Profitability Metrics -->
-        <section class="platform-metrics">
-            <div class="section-header">
-                <h2>💰 Platform Revenue & Profitability</h2>
-                <p class="section-subtitle">Estimated platform earnings and trader performance</p>
-            </div>
-
-            <div class="metrics-grid">
-                <div class="card metric-card revenue-card">
-                    <div class="card-header">
-                        <h3>Platform Revenue (24h)</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="platformRevenue24h">-</div>
-                        <div class="metric-subtitle">Fees + Funding</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card revenue-card">
-                    <div class="card-header">
-                        <h3>Projected Revenue (30d)</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="platformRevenue30d">-</div>
-                        <div class="metric-subtitle">Monthly estimate</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div class="card-header">
-                        <h3>Profitable Traders</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="profitableTraders">-</div>
-                        <div class="metric-subtitle">% of all traders</div>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div class="card-header">
-                        <h3>Avg Winner PnL (24h)</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value" id="avgWinnerPnl">-</div>
-                        <div class="metric-subtitle">Per profitable trader</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Whale Activity -->
-        <section class="platform-metrics">
-            <div class="section-header">
-                <h2>🐋 Whale Activity Analysis</h2>
-                <p class="section-subtitle">Markets dominated by large position holders</p>
-            </div>
-
-            <div class="metrics-grid-small">
-                <div class="card growth-card whale-card">
-                    <div class="growth-label">Whale Markets</div>
-                    <div class="growth-value" id="whaleMarketCount">-</div>
-                </div>
-
-                <div class="card growth-card whale-card">
-                    <div class="growth-label">Total Whale OI</div>
-                    <div class="growth-value" id="totalWhaleOI">-</div>
-                </div>
-
-                <div class="card growth-card whale-card">
-                    <div class="growth-label">Whale OI %</div>
-                    <div class="growth-value" id="whaleOIPercentage">-</div>
-                </div>
-            </div>
-
-            <div class="card table-card" style="margin-top: 20px;">
-                <div class="card-header">
-                    <h3>Whale-Dominated Markets</h3>
-                </div>
-                <div class="card-body">
-                    <table class="market-table">
-                        <thead>
-                            <tr>
-                                <th>Asset</th>
-                                <th>Open Interest</th>
-                                <th>24h Volume</th>
-                                <th>OI/Volume Ratio</th>
-                                <th>Whale Score</th>
-                            </tr>
-                        </thead>
-                        <tbody id="whaleMarketsTable">
-                            <tr><td colspan="5" class="loading">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- Charts Section -->
-        <section class="charts-section">
-            <div class="card chart-card">
-                <div class="card-header">
-                    <h3>📊 Volume Trend (30 Days)</h3>
-                </div>
-                <div class="card-body">
-                    <canvas id="volumeTrendChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card chart-card">
-                <div class="card-header">
-                    <h3>📊 Open Interest Trend (30 Days)</h3>
-                </div>
-                <div class="card-body">
-                    <canvas id="oiTrendChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <section class="charts-section">
-            <div class="card chart-card">
-                <div class="card-header">
-                    <h3>Top 10 Markets by Volume (24h)</h3>
-                </div>
-                <div class="card-body">
-                    <canvas id="volumeChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card chart-card">
-                <div class="card-header">
-                    <h3>Market Performance (24h Change %)</h3>
-                </div>
-                <div class="card-body">
-                    <canvas id="performanceChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- Market Tables -->
+        <!-- Top Markets -->
         <section class="tables-section">
-            <!-- Top Gainers -->
-            <div class="card table-card">
-                <div class="card-header">
-                    <h3>🚀 Top Gainers (24h)</h3>
-                </div>
-                <div class="card-body">
-                    <table class="market-table">
-                        <thead>
-                            <tr>
-                                <th>Asset</th>
-                                <th>Price</th>
-                                <th>24h Change</th>
-                                <th>Volume</th>
-                                <th>Funding</th>
-                            </tr>
-                        </thead>
-                        <tbody id="gainersTable">
-                            <tr><td colspan="5" class="loading">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Top Losers -->
-            <div class="card table-card">
-                <div class="card-header">
-                    <h3>📉 Top Losers (24h)</h3>
-                </div>
-                <div class="card-body">
-                    <table class="market-table">
-                        <thead>
-                            <tr>
-                                <th>Asset</th>
-                                <th>Price</th>
-                                <th>24h Change</th>
-                                <th>Volume</th>
-                                <th>Funding</th>
-                            </tr>
-                        </thead>
-                        <tbody id="losersTable">
-                            <tr><td colspan="5" class="loading">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Top by Volume -->
             <div class="card table-card full-width">
                 <div class="card-header">
-                    <h3>💰 Highest Volume Markets</h3>
+                    <h3>Top Markets by Volume</h3>
                 </div>
                 <div class="card-body">
                     <table class="market-table">
@@ -409,8 +193,123 @@
                                 <th>Funding Rate</th>
                             </tr>
                         </thead>
-                        <tbody id="volumeTable">
+                        <tbody id="topMarketsTable">
                             <tr><td colspan="7" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- User Analytics -->
+        <section class="user-analytics">
+            <div class="section-header">
+                <h2>User Analytics</h2>
+                <p class="section-subtitle">Track individual wallet performance and trading activity</p>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-group" style="flex: 1;">
+                    <label for="walletAddress">Wallet Address:</label>
+                    <input type="text" id="walletAddress" class="input-text" placeholder="0x... or username.eth">
+                </div>
+                <div class="control-group">
+                    <label>Window:</label>
+                    <select id="windowSelect" class="input-select">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                        <option value="allTime">All Time</option>
+                    </select>
+                </div>
+                <button id="loadUserData" class="btn-primary">Load User Data</button>
+            </div>
+
+            <!-- User Metrics -->
+            <div class="metrics-grid" id="userMetricsSection" style="display: none;">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Account Value</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="userAccountValue">$0</div>
+                        <div class="metric-subtitle">Current portfolio value</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Cumulative PnL</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="userCumulativePnL">$0</div>
+                        <div class="metric-subtitle">Total realized + unrealized</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Total Volume</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="userTotalVolume">$0</div>
+                        <div class="metric-subtitle">Trading volume</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Total Fees Paid</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="userFeesPaid">$0</div>
+                        <div class="metric-subtitle">Lifetime fees</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Charts -->
+            <div class="charts-section" id="userChartsSection" style="display: none;">
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3>Portfolio Value History</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3>PnL Chart</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="pnlChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Fills Table -->
+            <div class="card table-card full-width" id="userFillsSection" style="display: none; margin-top: 30px;">
+                <div class="card-header">
+                    <h3>Recent Fills</h3>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Asset</th>
+                                <th>Side</th>
+                                <th>Price</th>
+                                <th>Size</th>
+                                <th>Value</th>
+                                <th>Fee</th>
+                                <th>Closed PnL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userFillsTable">
+                            <tr><td colspan="8" class="loading">No data loaded</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -419,7 +318,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Data provided by Hyperliquid API via trade.xyz | Updates every 10 seconds</p>
+            <p>Real-time data from Hyperliquid API via trade.xyz | Updates every 10 seconds</p>
             <p>
                 <a href="https://docs.trade.xyz/api/overview" target="_blank">API Documentation</a> |
                 <a href="https://hyperliquid.xyz" target="_blank">Hyperliquid</a>
