@@ -183,33 +183,39 @@ class HyperliquidAPI:
 
         # Check if response is a list (alternative API response format)
         if isinstance(meta_data, list):
-            # Try getting data separately
-            meta = self.get_meta()
-            if not meta or "universe" not in meta:
+            # API returns [universe_data, asset_contexts]
+            if len(meta_data) < 2:
                 return summary
 
-            universe = meta["universe"]
+            universe = meta_data[0].get("universe", [])
+            asset_ctxs = meta_data[1] if len(meta_data) > 1 else []
 
-            # Get all mids for current prices
-            mids = self.get_all_mids()
-
-            # Build summary from available data
-            for asset in universe:
+            # Build summary from universe and asset contexts
+            for i, asset in enumerate(universe):
                 asset_name = asset.get("name", "")
 
-                # Get price from mids
-                mark_price = float(mids.get(asset_name, 0)) if mids else 0
+                # Get corresponding asset context
+                asset_ctx = asset_ctxs[i] if i < len(asset_ctxs) else {}
+
+                mark_price = float(asset_ctx.get("markPx", 0))
+                prev_day_px = float(asset_ctx.get("prevDayPx", 0))
 
                 asset_summary = {
                     "name": asset_name,
                     "mark_price": mark_price,
-                    "funding_rate": 0,  # Will be populated if available
-                    "open_interest": 0,
-                    "prev_day_px": 0,
-                    "day_ntl_vlm": 0,
-                    "premium": 0,
+                    "funding_rate": float(asset_ctx.get("funding", 0)),
+                    "open_interest": float(asset_ctx.get("openInterest", 0)),
+                    "prev_day_px": prev_day_px,
+                    "day_ntl_vlm": float(asset_ctx.get("dayNtlVlm", 0)),
+                    "premium": float(asset_ctx.get("premium", 0) or 0),
                     "change_24h": 0
                 }
+
+                # Calculate 24h change
+                if prev_day_px > 0:
+                    asset_summary["change_24h"] = (
+                        (mark_price - prev_day_px) / prev_day_px * 100
+                    )
 
                 summary["assets"].append(asset_summary)
 
