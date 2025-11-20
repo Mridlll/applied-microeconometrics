@@ -3,13 +3,14 @@ Flask server for Hyperliquid Dashboard
 Serves real-time trading data via REST API
 """
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
 from hyperliquid_api import HyperliquidAPI
 from analytics import PlatformAnalytics
+from advanced_analytics import HyperliquidAdvancedAnalytics
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -17,6 +18,7 @@ CORS(app)  # Enable CORS for frontend
 # Initialize API client and analytics
 api = HyperliquidAPI(use_testnet=False)
 analytics = PlatformAnalytics(data_dir=os.path.join(os.path.dirname(__file__), '..', 'data'))
+advanced = HyperliquidAdvancedAnalytics(use_testnet=False)
 
 # Cache for reducing API calls
 cache = {
@@ -188,11 +190,81 @@ def get_time_series(metric, days):
 
 @app.route('/api/platform-metrics')
 def platform_metrics():
-    """Get estimated platform metrics (users, trades, etc.)"""
+    """Get real platform metrics with actual fee calculations"""
     try:
         summary = api.get_market_summary()
-        metrics = analytics.estimate_platform_metrics(summary)
+        metrics = advanced.get_real_platform_metrics(summary)
         return jsonify(metrics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/granular/candles/<coin>/<interval>')
+def get_granular_candles(coin, interval):
+    """
+    Get granular candlestick data
+    Intervals: 1m, 15m, 1h, 4h, 1d, 1w
+    Query params: hours_back (default 24)
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=int)
+        candles = advanced.get_granular_market_data(coin, interval, hours_back)
+        return jsonify(candles)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/user/pnl/<user_address>')
+def get_user_pnl(user_address):
+    """
+    Get user PnL data
+    Query params: window (day, week, month, allTime)
+    """
+    try:
+        window = request.args.get('window', 'day', type=str)
+        pnl_data = advanced.analyze_user_pnl(user_address, window)
+        return jsonify(pnl_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/user/volume/<user_address>')
+def get_user_volume(user_address):
+    """
+    Get user volume breakdown
+    Query params: hours_back (default 24)
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=int)
+        end_time = int(datetime.now().timestamp() * 1000)
+        start_time = int((datetime.now() - timedelta(hours=hours_back)).timestamp() * 1000)
+
+        volume_data = advanced.get_user_volume_breakdown(user_address, start_time, end_time)
+        return jsonify(volume_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/user/fills/<user_address>')
+def get_user_fills(user_address):
+    """Get user's recent fills (trades)"""
+    try:
+        fills = advanced.get_user_fills(user_address, aggregation=False)
+        return jsonify(fills)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/portfolio/<user_address>')
+def get_portfolio_value(user_address):
+    """
+    Get portfolio value history
+    Query params: window (day, week, month, allTime, perpDay, perpWeek, perpMonth, perpAllTime)
+    """
+    try:
+        window = request.args.get('window', 'day', type=str)
+        portfolio = advanced.get_portfolio_value(user_address, window)
+        return jsonify(portfolio)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
