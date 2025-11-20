@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperliquid Trading Dashboard | trade.xyz</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>📊 Hyperliquid Dashboard</h1>
+                <p class="subtitle">Real-time trading analytics powered by trade.xyz</p>
+            </div>
+            <div class="header-stats">
+                <div class="stat-box">
+                    <span class="stat-label">Last Updated</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value status-indicator" id="status">
+                        <span class="pulse"></span> Live
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Market Overview Cards -->
+        <section class="overview">
+            <div class="card metric-card">
+                <div class="card-header">
+                    <h3>Total 24h Volume</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric-value" id="totalVolume">$0</div>
+                    <div class="metric-subtitle">Across all markets</div>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <div class="card-header">
+                    <h3>Total Open Interest</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric-value" id="totalOI">$0</div>
+                    <div class="metric-subtitle">All perpetuals</div>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <div class="card-header">
+                    <h3>Active Markets</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric-value" id="activeMarkets">0</div>
+                    <div class="metric-subtitle">Trading pairs</div>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <div class="card-header">
+                    <h3>Avg Funding Rate</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric-value" id="avgFunding">0%</div>
+                    <div class="metric-subtitle">Hourly rate</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h3>Top 10 Markets by Volume (24h)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h3>Market Performance (24h Change %)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Market Tables -->
+        <section class="tables-section">
+            <!-- Top Gainers -->
+            <div class="card table-card">
+                <div class="card-header">
+                    <h3>🚀 Top Gainers (24h)</h3>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Volume</th>
+                                <th>Funding</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gainersTable">
+                            <tr><td colspan="5" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top Losers -->
+            <div class="card table-card">
+                <div class="card-header">
+                    <h3>📉 Top Losers (24h)</h3>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Volume</th>
+                                <th>Funding</th>
+                            </tr>
+                        </thead>
+                        <tbody id="losersTable">
+                            <tr><td colspan="5" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top by Volume -->
+            <div class="card table-card full-width">
+                <div class="card-header">
+                    <h3>💰 Highest Volume Markets</h3>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Asset</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Volume (24h)</th>
+                                <th>Open Interest</th>
+                                <th>Funding Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="volumeTable">
+                            <tr><td colspan="7" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Data provided by Hyperliquid API via trade.xyz | Updates every 10 seconds</p>
+            <p>
+                <a href="https://docs.trade.xyz/api/overview" target="_blank">API Documentation</a> |
+                <a href="https://hyperliquid.xyz" target="_blank">Hyperliquid</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
