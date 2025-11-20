@@ -15,14 +15,25 @@ A real-time trading analytics dashboard for Hyperliquid (trade.xyz), built to vi
   - Average funding rates
   - Active market count
 
+- **Platform Analytics** (NEW! 🎉):
+  - Estimated user counts and activity metrics
+  - Growth tracking (7d and 30d periods)
+  - Historical data storage (up to 90 days)
+  - Time-series charts for volume and OI trends
+  - Platform activity estimates
+  - See [ANALYTICS_GUIDE.md](ANALYTICS_GUIDE.md) for details
+
 - **Interactive Visualizations**:
   - Top 10 markets by trading volume (bar chart)
   - Market performance rankings (24h change %)
+  - 30-day volume trend (line chart)
+  - 30-day open interest trend (line chart)
   - Top gainers and losers tables
   - Highest volume markets with detailed stats
 
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Clean UI**: Dark theme optimized for trading data visualization
+- **Data Persistence**: Automatic historical data tracking with JSON storage
 
 ## Tech Stack
 
