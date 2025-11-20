@@ -188,6 +188,9 @@ async function loadDashboardData() {
             updatePlatformMetrics(analytics);
             updateGrowthMetrics(analytics);
             updateTimeSeriesCharts(analytics);
+            updateWalletMetrics(analytics);
+            updateProfitabilityMetrics(analytics);
+            updateWhaleActivity(analytics);
         }
 
         updateLastUpdateTime();
@@ -394,6 +397,87 @@ function updateTimeSeriesCharts(analytics) {
         oiTrendChart.data.datasets[0].data = oiData.map(d => d.value);
         oiTrendChart.update();
     }
+}
+
+/**
+ * Update wallet metrics
+ */
+function updateWalletMetrics(analytics) {
+    const walletMetrics = analytics.wallet_metrics || {};
+    const distribution = walletMetrics.wallet_distribution || {};
+
+    document.getElementById('totalWallets').textContent =
+        formatNumber(walletMetrics.total_wallets || 0);
+
+    document.getElementById('activeWallets').textContent =
+        formatNumber(walletMetrics.active_wallets_24h || 0);
+
+    document.getElementById('whaleWallets').textContent =
+        formatNumber(distribution.whales?.count || 0);
+
+    document.getElementById('largeWallets').textContent =
+        formatNumber(distribution.large?.count || 0);
+}
+
+/**
+ * Update profitability metrics
+ */
+function updateProfitabilityMetrics(analytics) {
+    const profitability = analytics.profitability || {};
+
+    document.getElementById('platformRevenue24h').textContent =
+        formatCurrency(profitability.platform_revenue_24h || 0);
+
+    document.getElementById('platformRevenue30d').textContent =
+        formatCurrency(profitability.platform_revenue_30d || 0);
+
+    document.getElementById('profitableTraders').textContent =
+        `${(profitability.estimated_profitable_traders_pct || 0).toFixed(1)}%`;
+
+    document.getElementById('avgWinnerPnl').textContent =
+        formatCurrency(profitability.avg_winner_pnl_24h || 0);
+}
+
+/**
+ * Update whale activity metrics
+ */
+function updateWhaleActivity(analytics) {
+    const whaleActivity = analytics.whale_activity || {};
+
+    document.getElementById('whaleMarketCount').textContent =
+        formatNumber(whaleActivity.whale_market_count || 0);
+
+    document.getElementById('totalWhaleOI').textContent =
+        formatCurrency(whaleActivity.total_whale_oi || 0);
+
+    document.getElementById('whaleOIPercentage').textContent =
+        `${(whaleActivity.whale_oi_percentage || 0).toFixed(1)}%`;
+
+    // Update whale markets table
+    const whaleMarkets = whaleActivity.whale_dominated_markets || [];
+    const tbody = document.getElementById('whaleMarketsTable');
+    tbody.innerHTML = '';
+
+    if (whaleMarkets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">No whale-dominated markets detected</td></tr>';
+        return;
+    }
+
+    whaleMarkets.forEach(market => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="asset-name">${market.asset}</td>
+            <td class="volume">${formatCurrency(market.open_interest)}</td>
+            <td class="volume">${formatCurrency(market.volume_24h)}</td>
+            <td class="price">${market.oi_volume_ratio.toFixed(2)}x</td>
+            <td>
+                <span style="color: #ec4899; font-weight: 700;">
+                    ${market.whale_score}/100
+                </span>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 /**

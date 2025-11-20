@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hyperliquid Trading Dashboard | trade.xyz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -148,6 +151,153 @@
                 <div class="card growth-card">
                     <div class="growth-label">OI Growth (30d)</div>
                     <div class="growth-value" id="oiGrowth30d">-</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wallet Analytics -->
+        <section class="platform-metrics">
+            <div class="section-header">
+                <h2>💼 Wallet Analytics</h2>
+                <p class="section-subtitle">Active wallet distribution and user segmentation</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Total Wallets</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="totalWallets">-</div>
+                        <div class="metric-subtitle">Estimated unique wallets</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Active Wallets (24h)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="activeWallets">-</div>
+                        <div class="metric-subtitle">Trading in last 24h</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card whale-card">
+                    <div class="card-header">
+                        <h3>🐋 Whale Wallets</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="whaleWallets">-</div>
+                        <div class="metric-subtitle">>$500k positions</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Large Wallets</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="largeWallets">-</div>
+                        <div class="metric-subtitle">$50k-$500k positions</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profitability Metrics -->
+        <section class="platform-metrics">
+            <div class="section-header">
+                <h2>💰 Platform Revenue & Profitability</h2>
+                <p class="section-subtitle">Estimated platform earnings and trader performance</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="card metric-card revenue-card">
+                    <div class="card-header">
+                        <h3>Platform Revenue (24h)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="platformRevenue24h">-</div>
+                        <div class="metric-subtitle">Fees + Funding</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card revenue-card">
+                    <div class="card-header">
+                        <h3>Projected Revenue (30d)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="platformRevenue30d">-</div>
+                        <div class="metric-subtitle">Monthly estimate</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Profitable Traders</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="profitableTraders">-</div>
+                        <div class="metric-subtitle">% of all traders</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Avg Winner PnL (24h)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="avgWinnerPnl">-</div>
+                        <div class="metric-subtitle">Per profitable trader</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Whale Activity -->
+        <section class="platform-metrics">
+            <div class="section-header">
+                <h2>🐋 Whale Activity Analysis</h2>
+                <p class="section-subtitle">Markets dominated by large position holders</p>
+            </div>
+
+            <div class="metrics-grid-small">
+                <div class="card growth-card whale-card">
+                    <div class="growth-label">Whale Markets</div>
+                    <div class="growth-value" id="whaleMarketCount">-</div>
+                </div>
+
+                <div class="card growth-card whale-card">
+                    <div class="growth-label">Total Whale OI</div>
+                    <div class="growth-value" id="totalWhaleOI">-</div>
+                </div>
+
+                <div class="card growth-card whale-card">
+                    <div class="growth-label">Whale OI %</div>
+                    <div class="growth-value" id="whaleOIPercentage">-</div>
+                </div>
+            </div>
+
+            <div class="card table-card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3>Whale-Dominated Markets</h3>
+                </div>
+                <div class="card-body">
+                    <table class="market-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Open Interest</th>
+                                <th>24h Volume</th>
+                                <th>OI/Volume Ratio</th>
+                                <th>Whale Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="whaleMarketsTable">
+                            <tr><td colspan="5" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
