@@ -6,6 +6,7 @@ Serves real-time trading data via REST API
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from hyperliquid_api import HyperliquidAPI
+from analytics import PlatformAnalytics
 import os
 import json
 from datetime import datetime
@@ -13,8 +14,9 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
 
-# Initialize API client
+# Initialize API client and analytics
 api = HyperliquidAPI(use_testnet=False)
+analytics = PlatformAnalytics(data_dir=os.path.join(os.path.dirname(__file__), '..', 'data'))
 
 # Cache for reducing API calls
 cache = {
@@ -155,6 +157,42 @@ def market_stats():
         }
 
         return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/analytics')
+def get_analytics():
+    """Get comprehensive platform analytics"""
+    try:
+        summary = api.get_market_summary()
+        analytics_data = analytics.get_dashboard_analytics(summary)
+        return jsonify(analytics_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/analytics/time-series/<metric>/<int:days>')
+def get_time_series(metric, days):
+    """Get time series data for a specific metric"""
+    try:
+        valid_metrics = ["total_volume_24h", "total_open_interest", "total_assets", "avg_funding_rate"]
+        if metric not in valid_metrics:
+            return jsonify({"error": "Invalid metric"}), 400
+
+        data = analytics.get_time_series(metric, days)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/platform-metrics')
+def platform_metrics():
+    """Get estimated platform metrics (users, trades, etc.)"""
+    try:
+        summary = api.get_market_summary()
+        metrics = analytics.estimate_platform_metrics(summary)
+        return jsonify(metrics)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

@@ -13,6 +13,8 @@ const REFRESH_INTERVAL = 10000; // 10 seconds
 // Chart instances
 let volumeChart = null;
 let performanceChart = null;
+let volumeTrendChart = null;
+let oiTrendChart = null;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
@@ -56,6 +58,41 @@ function initializeCharts() {
         }
     };
 
+    const timeSeriesOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#a0aec0',
+                    callback: function(value) {
+                        if (value >= 1e9) return '$' + (value / 1e9).toFixed(1) + 'B';
+                        if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                        if (value >= 1e3) return '$' + (value / 1e3).toFixed(1) + 'K';
+                        return '$' + value;
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    color: '#a0aec0',
+                    maxTicksLimit: 8
+                }
+            }
+        }
+    };
+
     // Volume Chart
     const volumeCtx = document.getElementById('volumeChart').getContext('2d');
     volumeChart = new Chart(volumeCtx, {
@@ -88,6 +125,44 @@ function initializeCharts() {
         },
         options: chartOptions
     });
+
+    // Volume Trend Chart (Time Series)
+    const volumeTrendCtx = document.getElementById('volumeTrendChart').getContext('2d');
+    volumeTrendChart = new Chart(volumeTrendCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Volume (24h)',
+                data: [],
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: timeSeriesOptions
+    });
+
+    // Open Interest Trend Chart (Time Series)
+    const oiTrendCtx = document.getElementById('oiTrendChart').getContext('2d');
+    oiTrendChart = new Chart(oiTrendCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Open Interest',
+                data: [],
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderColor: 'rgba(139, 92, 246, 1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: timeSeriesOptions
+    });
 }
 
 /**
@@ -97,15 +172,26 @@ async function loadDashboardData() {
     try {
         updateStatus('Loading...', false);
 
-        const stats = await fetchMarketStats();
+        // Fetch both market stats and analytics in parallel
+        const [stats, analytics] = await Promise.all([
+            fetchMarketStats(),
+            fetchAnalytics()
+        ]);
 
         if (stats) {
             updateMetrics(stats);
             updateCharts(stats);
             updateTables(stats);
-            updateLastUpdateTime();
-            updateStatus('Live', true);
         }
+
+        if (analytics) {
+            updatePlatformMetrics(analytics);
+            updateGrowthMetrics(analytics);
+            updateTimeSeriesCharts(analytics);
+        }
+
+        updateLastUpdateTime();
+        updateStatus('Live', true);
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         updateStatus('Error', false);
@@ -121,6 +207,19 @@ async function fetchMarketStats() {
         return response.data;
     } catch (error) {
         console.error('API Error:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetch analytics data from API
+ */
+async function fetchAnalytics() {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/analytics`);
+        return response.data;
+    } catch (error) {
+        console.error('Analytics API Error:', error);
         return null;
     }
 }
@@ -218,6 +317,83 @@ function updateVolumeTable(data) {
         `;
         tbody.appendChild(row);
     });
+}
+
+/**
+ * Update platform metrics
+ */
+function updatePlatformMetrics(analytics) {
+    const platformMetrics = analytics.platform_metrics || {};
+    const cumulativeStats = analytics.cumulative_stats || {};
+
+    // Update estimated user metrics
+    document.getElementById('estimatedUsers').textContent =
+        formatNumber(platformMetrics.estimated_total_users || 0);
+
+    document.getElementById('activeUsers').textContent =
+        formatNumber(platformMetrics.estimated_active_users_24h || 0);
+
+    document.getElementById('estimatedTrades').textContent =
+        formatNumber(platformMetrics.estimated_daily_trades || 0);
+
+    document.getElementById('daysTracked').textContent =
+        cumulativeStats.days_tracked || 0;
+}
+
+/**
+ * Update growth metrics
+ */
+function updateGrowthMetrics(analytics) {
+    const growthMetrics = analytics.growth_metrics || {};
+
+    // Helper to format and color growth values
+    const updateGrowthValue = (elementId, value) => {
+        const el = document.getElementById(elementId);
+        const formattedValue = value !== undefined ? formatPercent(value) : '-';
+        el.textContent = formattedValue;
+
+        // Apply color classes
+        el.classList.remove('positive', 'negative');
+        if (value > 0) {
+            el.classList.add('positive');
+        } else if (value < 0) {
+            el.classList.add('negative');
+        }
+    };
+
+    updateGrowthValue('volumeGrowth7d', growthMetrics.volume_growth_7d);
+    updateGrowthValue('volumeGrowth30d', growthMetrics.volume_growth_30d);
+    updateGrowthValue('oiGrowth7d', growthMetrics.oi_growth_7d);
+    updateGrowthValue('oiGrowth30d', growthMetrics.oi_growth_30d);
+}
+
+/**
+ * Update time series charts
+ */
+function updateTimeSeriesCharts(analytics) {
+    const timeSeries = analytics.time_series || {};
+
+    // Update Volume Trend Chart
+    if (timeSeries.volume_30d && timeSeries.volume_30d.length > 0) {
+        const volumeData = timeSeries.volume_30d;
+        volumeTrendChart.data.labels = volumeData.map(d => {
+            const date = new Date(d.timestamp);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        volumeTrendChart.data.datasets[0].data = volumeData.map(d => d.value);
+        volumeTrendChart.update();
+    }
+
+    // Update Open Interest Trend Chart
+    if (timeSeries.open_interest_30d && timeSeries.open_interest_30d.length > 0) {
+        const oiData = timeSeries.open_interest_30d;
+        oiTrendChart.data.labels = oiData.map(d => {
+            const date = new Date(d.timestamp);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        oiTrendChart.data.datasets[0].data = oiData.map(d => d.value);
+        oiTrendChart.update();
+    }
 }
 
 /**

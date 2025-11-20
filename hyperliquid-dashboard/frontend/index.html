@@ -73,7 +73,106 @@
             </div>
         </section>
 
+        <!-- Platform Activity Metrics -->
+        <section class="platform-metrics">
+            <div class="section-header">
+                <h2>📊 Platform Activity & User Metrics</h2>
+                <p class="section-subtitle">Estimated metrics based on trading volume and open interest</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Estimated Total Users</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="estimatedUsers">-</div>
+                        <div class="metric-subtitle">Platform-wide</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Active Users (24h)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="activeUsers">-</div>
+                        <div class="metric-subtitle">Trading in last 24h</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Estimated Trades (24h)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="estimatedTrades">-</div>
+                        <div class="metric-subtitle">Daily transactions</div>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h3>Days Tracked</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-value" id="daysTracked">0</div>
+                        <div class="metric-subtitle">Historical data points</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Growth Metrics -->
+        <section class="growth-section">
+            <div class="section-header">
+                <h2>📈 Growth Metrics</h2>
+            </div>
+
+            <div class="metrics-grid-small">
+                <div class="card growth-card">
+                    <div class="growth-label">Volume Growth (7d)</div>
+                    <div class="growth-value" id="volumeGrowth7d">-</div>
+                </div>
+
+                <div class="card growth-card">
+                    <div class="growth-label">Volume Growth (30d)</div>
+                    <div class="growth-value" id="volumeGrowth30d">-</div>
+                </div>
+
+                <div class="card growth-card">
+                    <div class="growth-label">OI Growth (7d)</div>
+                    <div class="growth-value" id="oiGrowth7d">-</div>
+                </div>
+
+                <div class="card growth-card">
+                    <div class="growth-label">OI Growth (30d)</div>
+                    <div class="growth-value" id="oiGrowth30d">-</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h3>📊 Volume Trend (30 Days)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="volumeTrendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h3>📊 Open Interest Trend (30 Days)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="oiTrendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
         <section class="charts-section">
             <div class="card chart-card">
                 <div class="card-header">

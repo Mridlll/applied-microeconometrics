@@ -121,6 +121,45 @@ class HyperliquidAPI:
         )
         return result if isinstance(result, list) else []
 
+    def get_user_fills(self, user_address: str) -> List[Dict]:
+        """Get user's trade fills"""
+        result = self._post_request(
+            self.info_url,
+            {"type": "userFills", "user": user_address}
+        )
+        return result if isinstance(result, list) else []
+
+    def get_user_funding(self, user_address: str, start_time: Optional[int] = None) -> List[Dict]:
+        """Get user's funding payment history"""
+        if not start_time:
+            start_time = int((datetime.now() - timedelta(days=30)).timestamp() * 1000)
+
+        result = self._post_request(
+            self.info_url,
+            {
+                "type": "userFunding",
+                "user": user_address,
+                "startTime": start_time
+            }
+        )
+        return result if isinstance(result, list) else []
+
+    def get_open_orders(self, user_address: str) -> List[Dict]:
+        """Get user's open orders"""
+        result = self._post_request(
+            self.info_url,
+            {"type": "openOrders", "user": user_address}
+        )
+        return result if isinstance(result, list) else []
+
+    def get_frontend_open_orders(self, user_address: str) -> List[Dict]:
+        """Get user's frontend open orders"""
+        result = self._post_request(
+            self.info_url,
+            {"type": "frontendOpenOrders", "user": user_address}
+        )
+        return result if isinstance(result, list) else []
+
     def get_universe(self) -> List[str]:
         """Get list of all tradable coins"""
         meta = self.get_meta()
