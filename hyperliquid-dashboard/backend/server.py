@@ -9,6 +9,7 @@ from hyperliquid_api import HyperliquidAPI
 from analytics import PlatformAnalytics
 from advanced_analytics import HyperliquidAdvancedAnalytics
 from leaderboard_analytics import LeaderboardAnalytics
+from xyz_markets import XYZMarketsClient
 import os
 import json
 from datetime import datetime, timedelta
@@ -21,6 +22,10 @@ api = HyperliquidAPI(use_testnet=False)
 analytics = PlatformAnalytics(data_dir=os.path.join(os.path.dirname(__file__), '..', 'data'))
 advanced = HyperliquidAdvancedAnalytics(use_testnet=False)
 leaderboard = LeaderboardAnalytics(use_testnet=False)
+
+# Initialize XYZ Markets WebSocket client
+xyz_client = XYZMarketsClient(use_testnet=False)
+xyz_connected = False
 
 # Cache for reducing API calls
 cache = {
@@ -383,7 +388,74 @@ def get_tradfi_analytics():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/xyz/markets')
+def get_xyz_markets():
+    """Get XYZ equity perpetuals market data from WebSocket"""
+    try:
+        global xyz_connected
+        if not xyz_connected:
+            return jsonify({
+                "error": "XYZ WebSocket not connected",
+                "connected": False,
+                "assets": []
+            }), 503
+
+        market_data = xyz_client.get_market_data()
+
+        # Format data for API response
+        assets = []
+        for asset_name, data in market_data.items():
+            assets.append({
+                "name": asset_name,
+                "mark_price": data.get("mark_price"),
+                "last_update": data.get("last_update"),
+                "recent_trades_count": len(data.get("recent_trades", []))
+            })
+
+        return jsonify({
+            "connected": True,
+            "timestamp": datetime.now().isoformat(),
+            "total_assets": len(assets),
+            "assets": assets
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/xyz/asset/<asset_name>')
+def get_xyz_asset(asset_name):
+    """Get detailed XYZ asset data including recent trades"""
+    try:
+        # Ensure asset name has xyz: prefix
+        if not asset_name.startswith("xyz:"):
+            asset_name = f"xyz:{asset_name}"
+
+        asset_data = xyz_client.get_asset_data(asset_name)
+
+        if not asset_data:
+            return jsonify({"error": "Asset not found or no data available"}), 404
+
+        return jsonify({
+            "name": asset_name,
+            "mark_price": asset_data.get("mark_price"),
+            "last_update": asset_data.get("last_update"),
+            "recent_trades": asset_data.get("recent_trades", [])
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("Starting Hyperliquid Dashboard Server...")
     print("Dashboard will be available at: http://localhost:5000")
+
+    # Connect to XYZ markets WebSocket
+    print("\nConnecting to XYZ Markets WebSocket...")
+    xyz_connected = xyz_client.connect()
+    if xyz_connected:
+        print("XYZ WebSocket connected successfully")
+        print(f"Tracking {len(xyz_client.xyz_assets)} XYZ equity perpetuals")
+    else:
+        print("Warning: XYZ WebSocket connection failed")
+
     app.run(debug=True, host='0.0.0.0', port=5000)
