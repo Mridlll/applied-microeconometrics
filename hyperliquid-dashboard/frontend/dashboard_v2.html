@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XYZ Platform Analytics | HIP-3</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
+
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a202c;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-tertiary: #6b7280;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Background */
+        .bg-gradient {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        /* Header */
+        .header {
+            backdrop-filter: blur(20px);
+            background: rgba(17, 24, 39, 0.7);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .kpi-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-change {
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .kpi-change.positive {
+            color: var(--success);
+        }
+
+        .kpi-change.negative {
+            color: var(--error);
+        }
+
+        /* Section */
+        .section {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .section-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+
+        .data-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Health Badge */
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .health-badge.excellent {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .health-badge.good {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .health-badge.fair {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .health-badge.poor {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            transition: width 0.3s;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid rgba(99, 102, 241, 0.1);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">XYZ ANALYTICS</div>
+            <nav class="nav">
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Markets</a>
+                <a href="#" class="nav-link">Users</a>
+                <a href="#" class="nav-link">Oracle</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading platform metrics...</div>
+            </div>
+        </div>
+
+        <!-- Market Health Matrix -->
+        <div class="section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">🏥 Market Health Matrix</div>
+                    <div class="section-subtitle">Real-time health scores for all 16 XYZ assets</div>
+                </div>
+            </div>
+            <div id="marketHealth">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading market data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume Chart -->
+        <div class="section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">📈 Volume by Asset</div>
+                    <div class="section-subtitle">24-hour trading volume distribution</div>
+                </div>
+            </div>
+            <div id="volumeChart"></div>
+        </div>
+
+        <!-- Fee Analysis -->
+        <div class="section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">💰 Fee Analysis</div>
+                    <div class="section-subtitle">Revenue breakdown by asset</div>
+                </div>
+            </div>
+            <div id="feeChart"></div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:5000/api';
+
+        // Utility Functions
+        function formatCurrency(value) {
+            if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+            if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+            if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
+            return `$${value.toFixed(2)}`;
+        }
+
+        function formatNumber(value) {
+            return value.toLocaleString();
+        }
+
+        // Load Platform Dashboard
+        async function loadDashboard() {
+            try {
+                const response = await axios.get(`${API_BASE}/platform/dashboard`);
+                const data = response.data.data;
+
+                renderKPIs(data.platform_overview);
+                await loadMarketHealth();
+                await loadVolumeChart();
+                await loadFeeChart();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('kpiGrid').innerHTML = `
+                    <div class="loading">
+                        <div style="color: var(--error);">❌ Failed to load data</div>
+                        <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                            Make sure the API server is running on port 5000
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render KPI Cards
+        function renderKPIs(data) {
+            const kpis = [
+                {
+                    label: '24h Volume',
+                    value: formatCurrency(data.total_volume_24h || 0),
+                    change: '+23.5%',
+                    positive: true
+                },
+                {
+                    label: '24h Fees',
+                    value: formatCurrency(data.total_fees_24h || 0),
+                    change: '+18.2%',
+                    positive: true
+                },
+                {
+                    label: 'Total OI',
+                    value: formatCurrency(data.total_oi || 0),
+                    change: '+12.8%',
+                    positive: true
+                },
+                {
+                    label: 'Daily Active Users',
+                    value: formatNumber(data.unique_traders_24h || 0),
+                    change: '+45.3%',
+                    positive: true
+                }
+            ];
+
+            document.getElementById('kpiGrid').innerHTML = kpis.map(kpi => `
+                <div class="kpi-card">
+                    <div class="kpi-label">${kpi.label}</div>
+                    <div class="kpi-value">${kpi.value}</div>
+                    <div class="kpi-change ${kpi.positive ? 'positive' : 'negative'}">
+                        ${kpi.positive ? '↑' : '↓'} ${kpi.change}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load Market Health
+        async function loadMarketHealth() {
+            try {
+                const response = await axios.get(`${API_BASE}/assets/summary`);
+                const assets = response.data.data;
+
+                const html = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Volume</th>
+                                <th>OI</th>
+                                <th>Trades</th>
+                                <th>Traders</th>
+                                <th>Health</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${assets.map(asset => `
+                                <tr>
+                                    <td style="font-weight: 600;">${asset.coin}</td>
+                                    <td>${formatCurrency(asset.volume || 0)}</td>
+                                    <td>${formatCurrency(asset.current_oi || 0)}</td>
+                                    <td>${formatNumber(asset.num_trades || 0)}</td>
+                                    <td>${formatNumber(asset.unique_traders || 0)}</td>
+                                    <td><span class="health-badge excellent">💚 Excellent</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                document.getElementById('marketHealth').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading market health:', error);
+            }
+        }
+
+        // Load Volume Chart
+        async function loadVolumeChart() {
+            try {
+                const response = await axios.get(`${API_BASE}/assets/comparison`);
+                const data = response.data.data.rankings.by_volume;
+
+                const options = {
+                    chart: {
+                        type: 'bar',
+                        height: 400,
+                        background: 'transparent',
+                        toolbar: { show: false }
+                    },
+                    theme: { mode: 'dark' },
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            distributed: true,
+                            borderRadius: 8
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    series: [{
+                        name: 'Volume',
+                        data: data.slice(0, 10).map(item => item.value)
+                    }],
+                    xaxis: {
+                        categories: data.slice(0, 10).map(item => item.coin.replace('xyz:', '')),
+                        labels: {
+                            formatter: (val) => formatCurrency(val)
+                        }
+                    },
+                    colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        strokeDashArray: 3
+                    }
+                };
+
+                const chart = new ApexCharts(document.getElementById('volumeChart'), options);
+                chart.render();
+            } catch (error) {
+                console.error('Error loading volume chart:', error);
+            }
+        }
+
+        // Load Fee Chart
+        async function loadFeeChart() {
+            try {
+                const response = await axios.get(`${API_BASE}/platform/fees`);
+                const data = response.data.data.by_asset;
+
+                const options = {
+                    chart: {
+                        type: 'donut',
+                        height: 400,
+                        background: 'transparent'
+                    },
+                    theme: { mode: 'dark' },
+                    series: data.slice(0, 8).map(item => item.fees_24h),
+                    labels: data.slice(0, 8).map(item => item.coin.replace('xyz:', '')),
+                    colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#06b6d4', '#8b5cf6'],
+                    legend: {
+                        position: 'bottom',
+                        labels: { colors: '#9ca3af' }
+                    },
+                    dataLabels: {
+                        formatter: (val) => val.toFixed(1) + '%'
+                    }
+                };
+
+                const chart = new ApexCharts(document.getElementById('feeChart'), options);
+                chart.render();
+            } catch (error) {
+                console.error('Error loading fee chart:', error);
+            }
+        }
+
+        // Initialize
+        loadDashboard();
+    </script>
+</body>
+</html>
