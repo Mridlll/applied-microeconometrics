@@ -1,128 +1,181 @@
-# Quick Start Guide
+# HIP-3 Analytics Dashboard - Quick Start Guide
 
-Get your Hyperliquid dashboard running in 60 seconds!
+## 🎯 Overview
 
-## 🚀 Quick Setup
+This dashboard consists of two servers running simultaneously:
 
-### Option 1: Using the Run Script (Recommended)
+- **Main Server** (port 5000): Serves HTML pages
+- **API Server** (port 5001): Provides data endpoints
 
-```bash
+## ✅ What Was Fixed
+
+### 1. Port Configuration
+- **API Server**: Changed from port 5000 → 5001
+- **Main Server**: Remains on port 5000
+- **Dashboard**: Updated to call API on port 5001
+
+### 2. Module Import Conflicts
+- Created `backend/analytics/__init__.py` to bridge legacy and new code
+- Supports both:
+  - Legacy: `from analytics import PlatformAnalytics`
+  - New: `from analytics.platform_metrics import PlatformMetrics`
+
+### 3. Dashboard Route
+- Added `/dashboard_v2` route to main server
+- Access at: http://localhost:5000/dashboard_v2
+
+### 4. Database Setup
+- Generated test database with 10,000 trades
+- Located at: `backend/api/hip3_analytics.db`
+- Contains realistic data for 16 XYZ markets
+
+## 🚀 Quick Start
+
+### Option 1: Automated Testing Script
+\`\`\`bash
 cd hyperliquid-dashboard
-./run.sh
-```
+./test-servers.sh
+\`\`\`
 
-### Option 2: Manual Setup
+This will:
+1. Start both servers
+2. Run health checks
+3. Verify all endpoints
+4. Display server PIDs and URLs
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+### Option 2: Manual Server Startup
+\`\`\`bash
+cd hyperliquid-dashboard
 
-# Run the server
-cd backend
-python3 server.py
-```
+# Start API Server (port 5001)
+cd backend/api
+python3 server_v2.py &
 
-## 📱 Access the Dashboard
+# Start Main Server (port 5000)
+cd ..
+python3 server.py &
+\`\`\`
 
-Open your browser and go to:
-```
-http://localhost:5000
-```
+### Option 3: Full Startup Script
+\`\`\`bash
+cd hyperliquid-dashboard
+./start-servers.sh
+\`\`\`
 
-## ✅ What You'll See
+This provides real-time logs from both servers.
 
-The dashboard includes:
+## 📊 Access Points
 
-1. **Market Overview Cards**
-   - Total 24h trading volume
-   - Total open interest
-   - Number of active markets
-   - Average funding rate
+Once servers are running:
 
-2. **Interactive Charts**
-   - Top markets by volume (bar chart)
-   - Market performance rankings
+| Service | URL | Description |
+|---------|-----|-------------|
+| Main Dashboard | http://localhost:5000/ | Original dashboard |
+| V2 Dashboard | http://localhost:5000/dashboard_v2 | New analytics dashboard |
+| HIP-3 Analytics | http://localhost:5000/hip3 | Advanced analytics |
+| API Health | http://localhost:5001/health | API health check |
+| API Docs | http://localhost:5001/api/docs | API documentation |
 
-3. **Data Tables**
-   - Top gainers (24h)
-   - Top losers (24h)
-   - Highest volume markets
+## 🔧 Regenerate Test Data
 
-4. **Real-time Updates**
-   - Auto-refreshes every 10 seconds
-   - Live price updates
-   - Current status indicator
+If you need fresh test data:
 
-## 🔧 Troubleshooting
+\`\`\`bash
+cd hyperliquid-dashboard/backend
+python3 tests/generate_test_data.py
+cp tests/hip3_analytics_test.db api/hip3_analytics.db
+\`\`\`
 
-### Port 5000 is already in use?
+## 🐛 Troubleshooting
 
-Edit `backend/server.py` and change the port:
-```python
-app.run(debug=True, host='0.0.0.0', port=5001)  # Change port here
-```
+### API Returns Empty Data
+\`\`\`bash
+# Ensure database exists in the right location
+ls -lh backend/api/hip3_analytics.db
+\`\`\`
 
-### Dependencies not installing?
+### Port Already in Use
+\`\`\`bash
+# Check what's using the ports
+lsof -i :5000
+lsof -i :5001
 
-Try using a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
+# Kill existing processes
+pkill -f "python3 server"
+\`\`\`
 
-### No data showing?
+### Import Errors
+\`\`\`bash
+# Verify analytics package structure
+cd hyperliquid-dashboard/backend
+python3 -c "from analytics import PlatformAnalytics; print('✓ Legacy import works')"
+python3 -c "from analytics.platform_metrics import PlatformMetrics; print('✓ New import works')"
+\`\`\`
 
-1. Check internet connection (needs to access Hyperliquid API)
-2. Check browser console for errors (F12)
-3. Verify backend is running (should see "Running on http://0.0.0.0:5000")
+## 📁 Project Structure
 
-## 📊 API Endpoints
+\`\`\`
+hyperliquid-dashboard/
+├── backend/
+│   ├── server.py                    # Main server (port 5000)
+│   ├── analytics.py                 # Legacy analytics module
+│   ├── analytics/                   # New analytics package
+│   │   ├── __init__.py             # Package bridge
+│   │   ├── platform_metrics.py
+│   │   ├── market_metrics.py
+│   │   └── user_metrics.py
+│   ├── api/
+│   │   ├── server_v2.py            # API server (port 5001)
+│   │   └── hip3_analytics.db       # Test database
+│   └── tests/
+│       └── generate_test_data.py   # Database generator
+├── frontend/
+│   ├── index.html                  # Main dashboard
+│   ├── dashboard_v2.html           # V2 dashboard (Dune-style)
+│   └── hip3-analytics.html
+├── start-servers.sh                # Full startup script
+├── test-servers.sh                 # Quick test script
+└── QUICKSTART.md                   # This file
+\`\`\`
 
-If you want to use the API programmatically:
+## 🎨 Dashboard Features
 
-```bash
-# Get market statistics
-curl http://localhost:5000/api/stats
+### V2 Dashboard (\`/dashboard_v2\`)
+- Real-time KPI cards (Volume, Fees, OI, DAU)
+- Market health matrix for all 16 assets
+- Volume distribution charts
+- Fee revenue breakdown
+- Modern glassmorphism UI (Dune/DefiLlama inspired)
 
-# Get market summary
-curl http://localhost:5000/api/market-summary
+### API Endpoints Used
+- \`GET /api/platform/dashboard\` - Complete dashboard data
+- \`GET /api/assets/summary\` - All assets summary
+- \`GET /api/assets/comparison\` - Asset comparisons
+- \`GET /api/platform/fees\` - Fee analysis
 
-# Get list of assets
-curl http://localhost:5000/api/universe
-```
+## 📝 Development Notes
 
-## 🎨 Customization
+### Adding New Features
+1. API endpoints go in \`backend/api/server_v2.py\`
+2. Analytics logic goes in \`backend/analytics/\` modules
+3. Frontend updates go in \`frontend/dashboard_v2.html\`
 
-### Change refresh interval
+### Running Tests
+\`\`\`bash
+cd hyperliquid-dashboard/backend/tests
+python3 test_api_endpoints.py
+\`\`\`
 
-Edit `frontend/js/dashboard.js`:
-```javascript
-const REFRESH_INTERVAL = 5000; // 5 seconds instead of 10
-```
+## ✅ Verification Checklist
 
-### Change theme colors
+- [x] Both servers start without port conflicts
+- [x] API server on port 5001 responds to health checks
+- [x] Main server on port 5000 serves dashboard
+- [x] \`/dashboard_v2\` route returns 200
+- [x] API endpoints return real data (not empty)
+- [x] Dashboard pulls data from API successfully
+- [x] Module imports work for both legacy and new code
 
-Edit `frontend/css/styles.css` and modify the `:root` variables:
-```css
-:root {
-    --accent-primary: #3b82f6; /* Change to your preferred color */
-}
-```
+## 🚦 Status
 
-## 📖 Next Steps
-
-- Read the full [README.md](README.md) for detailed documentation
-- Explore the API client in `backend/hyperliquid_api.py`
-- Customize the dashboard styling
-- Add your own metrics and visualizations
-
-## 🆘 Need Help?
-
-- Check the [Hyperliquid API docs](https://docs.trade.xyz/api/overview)
-- Review the main [README.md](README.md)
-- Look at the example code in `backend/hyperliquid_api.py`
-
----
-
-Happy trading! 📈
+All systems operational! Dashboard is ready for use.

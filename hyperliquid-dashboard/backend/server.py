@@ -75,8 +75,8 @@ def hip3_analytics():
 
 
 @app.route('/dashboard_v2')
-def xyz_platform_analytics():
-    """Serve the XYZ Platform Analytics page (Dashboard v2)"""
+def dashboard_v2():
+    """Serve the new analytics dashboard (v2)"""
     frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend')
     return send_from_directory(frontend_path, 'dashboard_v2.html')
 
