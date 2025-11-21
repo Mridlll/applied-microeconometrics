@@ -560,9 +560,17 @@ def get_hip3_asset_breakdown():
 
 @app.route('/api/hip3/quick-summary')
 def get_hip3_quick_summary():
-    """Get quick HIP-3 summary from WebSocket client"""
+    """Get quick HIP-3 summary from WebSocket client with actual data window"""
     try:
         summary = xyz_client.get_analytics_summary()
+
+        # Add disclaimer about actual data collection window
+        data_age_hours = summary.get('oldest_trade_age_seconds', 0) / 3600
+
+        summary['data_collection_hours'] = round(data_age_hours, 2)
+        summary['is_full_24h'] = data_age_hours >= 24
+        summary['disclaimer'] = f"Data from last {round(data_age_hours, 1)} hours (not full 24h)" if data_age_hours < 24 else "Full 24h data"
+
         return jsonify(summary)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -687,6 +695,139 @@ def get_trade_size_distribution():
 
         distribution = hip3_advanced.get_trade_size_distribution(hours_back, dex)
         return jsonify(distribution)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/collect-snapshots', methods=['POST'])
+def collect_market_snapshots():
+    """
+    Collect and store market snapshots for all HIP-3 markets
+    Call this endpoint periodically (every 5-15 minutes) to build time-series data
+    """
+    try:
+        dex_configs = [
+            {"name": "xyz", "quote": "USDC"},
+            {"name": "flx", "quote": "USDH"},
+            {"name": "vntl", "quote": "USDH"}
+        ]
+
+        all_snapshots = []
+
+        for config in dex_configs:
+            dex_name = config["name"]
+
+            # Fetch current market data
+            response = requests.post(
+                f"{hip3_advanced.api_url}/info",
+                json={"type": "metaAndAssetCtxs", "dex": dex_name},
+                timeout=10
+            )
+
+            if response.ok:
+                data = response.json()
+                metadata = data[0] if len(data) > 0 else {}
+                asset_ctxs = data[1] if len(data) > 1 else []
+
+                universe = metadata.get("universe", [])
+
+                for i, market in enumerate(universe):
+                    if i >= len(asset_ctxs):
+                        break
+
+                    coin_name = market.get("name", "N/A")
+                    is_delisted = market.get("isDelisted", False)
+                    ctx = asset_ctxs[i]
+
+                    mark_px = float(ctx.get('markPx') or 0)
+                    oi_contracts = float(ctx.get('openInterest') or 0)
+                    day_volume = float(ctx.get('dayNtlVlm') or 0)
+                    funding = float(ctx.get('funding') or 0)
+                    oracle_px = float(ctx.get('oraclePx') or 0)
+                    premium = float(ctx.get('premium') or 0)
+                    prev_day_px = float(ctx.get('prevDayPx') or mark_px)
+
+                    # CORRECT OI CALCULATION
+                    oi_usd = oi_contracts * mark_px
+
+                    # Store snapshot for active markets
+                    if not is_delisted:
+                        snapshot = {
+                            'dex': dex_name,
+                            'coin': coin_name,
+                            'mark_price': mark_px,
+                            'open_interest': oi_contracts,
+                            'open_interest_usd': oi_usd,
+                            'volume_24h': day_volume,
+                            'funding_rate': funding,
+                            'oracle_price': oracle_px,
+                            'premium': premium,
+                            'prev_day_price': prev_day_px
+                        }
+                        all_snapshots.append(snapshot)
+
+        # Store all snapshots in database
+        if xyz_client.trade_db and all_snapshots:
+            xyz_client.trade_db.store_market_snapshots_batch(all_snapshots)
+
+            return jsonify({
+                "success": True,
+                "snapshots_stored": len(all_snapshots),
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({"error": "Database not available or no snapshots"}), 500
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/oi-trends')
+def get_oi_trends():
+    """
+    Get OI trends for all HIP-3 markets over 24h
+    Shows current, min, max, average OI from stored snapshots
+    Query params: dex (default 'xyz'), hours_back (default 24)
+    """
+    try:
+        if not xyz_client.trade_db:
+            return jsonify({"error": "Database not available"}), 500
+
+        dex = request.args.get('dex', 'xyz', type=str)
+        hours_back = request.args.get('hours_back', 24, type=float)
+
+        # Get all active markets for this dex
+        response = requests.post(
+            f"{hip3_advanced.api_url}/info",
+            json={"type": "meta", "dex": dex},
+            timeout=10
+        )
+
+        if not response.ok:
+            return jsonify({"error": "Failed to fetch markets"}), 500
+
+        meta = response.json()
+        universe = meta.get("universe", [])
+
+        # Get OI trends for each market
+        oi_trends = []
+        for asset in universe:
+            coin_name = asset.get("name", "")
+            is_delisted = asset.get("isDelisted", False)
+
+            if not is_delisted:
+                trends = xyz_client.trade_db.get_oi_trends(coin_name, hours_back)
+                if trends['data_points'] > 0:
+                    oi_trends.append(trends)
+
+        return jsonify({
+            "dex": dex,
+            "timeframe_hours": hours_back,
+            "timestamp": datetime.now().isoformat(),
+            "total_markets": len(oi_trends),
+            "markets": oi_trends
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

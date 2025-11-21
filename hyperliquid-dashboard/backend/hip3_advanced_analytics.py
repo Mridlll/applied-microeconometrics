@@ -110,6 +110,14 @@ class HIP3AdvancedAnalytics:
         result["total_hip3_revenue"] = sum(d["platform_revenue"] for d in result["deployers"])
         result["total_deployer_revenue"] = sum(d["deployer_revenue"] for d in result["deployers"])
 
+        # Calculate actual data collection window
+        if self.trade_db:
+            db_stats = self.trade_db.get_summary_stats()
+            actual_hours = db_stats.get('oldest_trade_age_seconds', 0) / 3600
+            result["actual_data_hours"] = round(actual_hours, 2)
+            result["is_full_24h"] = actual_hours >= 24
+            result["disclaimer"] = f"Data from last {round(actual_hours, 1)} hours (not full 24h)" if actual_hours < 24 else "Full 24h data"
+
         return result
 
     def get_oracle_performance(self, dex: str = "xyz") -> Dict:

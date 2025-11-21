@@ -7,6 +7,7 @@ import sqlite3
 import threading
 import queue
 import time
+import statistics
 from datetime import datetime
 from typing import Dict, List, Optional
 import json
@@ -83,6 +84,29 @@ class TradeDatabase:
                 newest_trade_timestamp REAL NOT NULL
             )
         """)
+
+        # Market snapshots table (for time-series OI, volume, funding tracking)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS market_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp REAL NOT NULL,
+                dex TEXT NOT NULL,
+                coin TEXT NOT NULL,
+                mark_price REAL NOT NULL,
+                open_interest REAL NOT NULL,
+                open_interest_usd REAL NOT NULL,
+                volume_24h REAL NOT NULL,
+                funding_rate REAL NOT NULL,
+                oracle_price REAL,
+                premium REAL,
+                prev_day_price REAL
+            )
+        """)
+
+        # Indexes for market snapshots
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshot_coin_time ON market_snapshots(coin, timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshot_dex_time ON market_snapshots(dex, timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshot_time ON market_snapshots(timestamp)")
 
         conn.commit()
         conn.close()
@@ -357,6 +381,160 @@ class TradeDatabase:
         conn.close()
 
         print(f"Cleaned up {deleted} old trades (keeping last {days_to_keep} days)")
+        return deleted
+
+    def store_market_snapshot(self, dex: str, coin: str, snapshot_data: dict):
+        """Store a market snapshot for time-series analysis"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                INSERT INTO market_snapshots
+                (timestamp, dex, coin, mark_price, open_interest, open_interest_usd,
+                 volume_24h, funding_rate, oracle_price, premium, prev_day_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                time.time(),
+                dex,
+                coin,
+                snapshot_data.get('mark_price', 0),
+                snapshot_data.get('open_interest', 0),
+                snapshot_data.get('open_interest_usd', 0),
+                snapshot_data.get('volume_24h', 0),
+                snapshot_data.get('funding_rate', 0),
+                snapshot_data.get('oracle_price'),
+                snapshot_data.get('premium'),
+                snapshot_data.get('prev_day_price')
+            ))
+            conn.commit()
+        except Exception as e:
+            print(f"Error storing market snapshot: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+
+    def store_market_snapshots_batch(self, snapshots: list):
+        """Store multiple market snapshots at once"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            timestamp = time.time()
+            insert_data = []
+
+            for snapshot in snapshots:
+                insert_data.append((
+                    timestamp,
+                    snapshot.get('dex', ''),
+                    snapshot.get('coin', ''),
+                    snapshot.get('mark_price', 0),
+                    snapshot.get('open_interest', 0),
+                    snapshot.get('open_interest_usd', 0),
+                    snapshot.get('volume_24h', 0),
+                    snapshot.get('funding_rate', 0),
+                    snapshot.get('oracle_price'),
+                    snapshot.get('premium'),
+                    snapshot.get('prev_day_price')
+                ))
+
+            cursor.executemany("""
+                INSERT INTO market_snapshots
+                (timestamp, dex, coin, mark_price, open_interest, open_interest_usd,
+                 volume_24h, funding_rate, oracle_price, premium, prev_day_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, insert_data)
+
+            conn.commit()
+            print(f"Stored {len(snapshots)} market snapshots")
+        except Exception as e:
+            print(f"Error storing market snapshots: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+
+    def get_market_snapshots(self, coin: str, hours_back: float = 24):
+        """Get historical snapshots for a specific market"""
+        cutoff = time.time() - (hours_back * 3600)
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT timestamp, mark_price, open_interest, open_interest_usd,
+                   volume_24h, funding_rate, oracle_price, premium
+            FROM market_snapshots
+            WHERE coin = ? AND timestamp >= ?
+            ORDER BY timestamp ASC
+        """, (coin, cutoff))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        snapshots = []
+        for row in rows:
+            snapshots.append({
+                'timestamp': row[0],
+                'mark_price': row[1],
+                'open_interest': row[2],
+                'open_interest_usd': row[3],
+                'volume_24h': row[4],
+                'funding_rate': row[5],
+                'oracle_price': row[6],
+                'premium': row[7]
+            })
+
+        return snapshots
+
+    def get_oi_trends(self, coin: str, hours_back: float = 24):
+        """Get OI trend statistics for a market over time"""
+        snapshots = self.get_market_snapshots(coin, hours_back)
+
+        if not snapshots:
+            return {
+                'coin': coin,
+                'data_points': 0,
+                'current_oi': 0,
+                'min_oi': 0,
+                'max_oi': 0,
+                'avg_oi': 0,
+                'oi_change_24h': 0,
+                'oi_change_pct': 0
+            }
+
+        oi_values = [s['open_interest_usd'] for s in snapshots]
+
+        current_oi = oi_values[-1] if oi_values else 0
+        first_oi = oi_values[0] if oi_values else 0
+        oi_change = current_oi - first_oi
+        oi_change_pct = (oi_change / first_oi * 100) if first_oi > 0 else 0
+
+        return {
+            'coin': coin,
+            'data_points': len(snapshots),
+            'current_oi': current_oi,
+            'min_oi': min(oi_values) if oi_values else 0,
+            'max_oi': max(oi_values) if oi_values else 0,
+            'avg_oi': statistics.mean(oi_values) if oi_values else 0,
+            'oi_change_24h': oi_change,
+            'oi_change_pct': oi_change_pct,
+            'snapshots': snapshots  # Include full time series
+        }
+
+    def cleanup_old_snapshots(self, days_to_keep: int = 30):
+        """Delete old snapshots to save space"""
+        cutoff = time.time() - (days_to_keep * 24 * 3600)
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM market_snapshots WHERE timestamp < ?", (cutoff,))
+        deleted = cursor.rowcount
+
+        conn.commit()
+        conn.close()
+
+        print(f"Cleaned up {deleted} old market snapshots (keeping last {days_to_keep} days)")
         return deleted
 
     def close(self):
