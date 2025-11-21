@@ -74,6 +74,13 @@ def hip3_analytics():
     return send_from_directory(frontend_path, 'hip3-analytics.html')
 
 
+@app.route('/dashboard_v2')
+def xyz_platform_analytics():
+    """Serve the XYZ Platform Analytics page (Dashboard v2)"""
+    frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend')
+    return send_from_directory(frontend_path, 'dashboard_v2.html')
+
+
 @app.route('/js/<path:filename>')
 def serve_js(filename):
     """Serve JavaScript files"""
