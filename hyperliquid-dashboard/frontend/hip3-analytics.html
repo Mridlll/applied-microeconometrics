@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HIP-3 Advanced Analytics | Hyperliquid</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Inter', sans-serif;
+            color: #e0e6ed;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e2139 0%, #2a2f4a 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 900;
+            margin: 0 0 8px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header .subtitle {
+            color: #a8b2d1;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0;
+        }
+
+        .tab {
+            padding: 14px 24px;
+            background: transparent;
+            border: none;
+            color: #a8b2d1;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #e0e6ed;
+        }
+
+        .section-header p {
+            color: #a8b2d1;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .card {
+            background: linear-gradient(135deg, #1e2139 0%, #252a47 100%);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
+        }
+
+        .card-header {
+            margin-bottom: 16px;
+        }
+
+        .card-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #a8b2d1;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-weight: 900;
+            color: #667eea;
+            margin: 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-label {
+            color: #a8b2d1;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .metric-change {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .metric-change.positive {
+            color: #4ade80;
+        }
+
+        .metric-change.negative {
+            color: #f87171;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        .chart-container-small {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        thead {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: #a8b2d1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        td {
+            padding: 14px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-primary {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .badge-success {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .badge-danger {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a8b2d1;
+            font-style: italic;
+        }
+
+        .wallet-address {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #667eea;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-row .label {
+            color: #a8b2d1;
+            font-size: 14px;
+        }
+
+        .stat-row .value {
+            color: #e0e6ed;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            gap: 4px;
+            margin-top: 20px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .deployer-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .deployer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #1a1f3a;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            color: #1a1f3a;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #e5a96d 100%);
+            color: #1a1f3a;
+        }
+
+        .rank-other {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animated {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header animated">
+            <h1>🚀 HIP-3 Advanced Analytics</h1>
+            <p class="subtitle">Comprehensive analytics for all Hyperliquid Improvement Proposal #3 deployed markets (XYZ, FLX, VNTL)</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs animated">
+            <button class="tab active" onclick="switchTab('overview')">📊 Overview</button>
+            <button class="tab" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+            <button class="tab" onclick="switchTab('markets')">📈 Markets</button>
+            <button class="tab" onclick="switchTab('analytics')">🔬 Analytics</button>
+            <button class="tab" onclick="switchTab('deployers')">🏗️ Deployers</button>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div id="overview-tab" class="tab-content active">
+            <!-- Quick Stats -->
+            <div class="section animated">
+                <div class="grid grid-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Total HIP-3 Volume (24h)</h3>
+                        </div>
+                        <div class="metric-value" id="totalHip3Volume">$0</div>
+                        <div class="metric-label">Across all deployers</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Total Open Interest</h3>
+                        </div>
+                        <div class="metric-value" id="totalHip3OI">$0</div>
+                        <div class="metric-label">All HIP-3 markets</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Active Markets</h3>
+                        </div>
+                        <div class="metric-value" id="totalHip3Markets">0</div>
+                        <div class="metric-label">Live trading pairs</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Platform Revenue (24h)</h3>
+                        </div>
+                        <div class="metric-value" id="totalHip3Revenue">$0</div>
+                        <div class="metric-label">Fees collected</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Markets Table -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>All HIP-3 Markets</h2>
+                        <p>Real-time data from XYZ, FLX, and VNTL deployers</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Deployer</th>
+                                <th>Market</th>
+                                <th>Mark Price</th>
+                                <th>24h Change</th>
+                                <th>Volume (24h)</th>
+                                <th>Open Interest</th>
+                                <th>Funding Rate</th>
+                                <th>Max Leverage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allMarketsTable">
+                            <tr><td colspan="8" class="loading">Loading markets data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Market Share by Deployer -->
+            <div class="section animated">
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="section-header">
+                            <h2>Volume by Deployer</h2>
+                            <p>24h volume distribution</p>
+                        </div>
+                        <div class="chart-container-small">
+                            <canvas id="volumeByDeployerChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="section-header">
+                            <h2>Markets by Deployer</h2>
+                            <p>Active market count</p>
+                        </div>
+                        <div class="chart-container-small">
+                            <canvas id="marketsByDeployerChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD TAB -->
+        <div id="leaderboard-tab" class="tab-content">
+            <!-- Top Traders -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>🏆 Top TradFi Traders</h2>
+                        <p>Leaderboard by 24h trading volume on HIP-3 markets</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet</th>
+                                <th>Total Volume</th>
+                                <th>Trades</th>
+                                <th>Assets</th>
+                                <th>Avg Trade Size</th>
+                                <th>Buy/Sell Ratio</th>
+                                <th>Fees Paid</th>
+                                <th>Market Share</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardTable">
+                            <tr><td colspan="9" class="loading">Loading leaderboard...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Trader Metrics -->
+            <div class="section animated">
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Total Unique Traders (24h)</h3>
+                        </div>
+                        <div class="metric-value" id="totalTraders">0</div>
+                        <div class="metric-label">Active wallets</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Average Trade Size</h3>
+                        </div>
+                        <div class="metric-value" id="avgTradeSize">$0</div>
+                        <div class="metric-label">Across all traders</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Top Trader Dominance</h3>
+                        </div>
+                        <div class="metric-value" id="topTraderShare">0%</div>
+                        <div class="metric-label">Market share</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade Size Distribution -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Trade Size Distribution</h2>
+                        <p>Histogram of trade sizes (24h)</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tradeSizeDistChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MARKETS TAB -->
+        <div id="markets-tab" class="tab-content">
+            <!-- Market Maturity Analysis -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Market Maturity & Lifecycle</h2>
+                        <p>Volume growth and market health indicators</p>
+                    </div>
+                    <table id="maturityTable">
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>24h Volume</th>
+                                <th>7d Volume</th>
+                                <th>Growth Rate</th>
+                                <th>Open Interest</th>
+                                <th>Trades (24h)</th>
+                                <th>Max Leverage</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maturityTableBody">
+                            <tr><td colspan="8" class="loading">Loading market maturity data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Oracle Performance -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Oracle Performance Metrics</h2>
+                        <p>Price deviations and oracle accuracy</p>
+                    </div>
+                    <div id="oracleMetrics">
+                        <div class="loading">Loading oracle data...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cross-Market Correlations -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Cross-Market Price Correlations</h2>
+                        <p>Correlation heatmap (24h price movements)</p>
+                    </div>
+                    <div id="correlationHeatmap">
+                        <div class="loading">Loading correlation data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS TAB -->
+        <div id="analytics-tab" class="tab-content">
+            <!-- Growth Metrics -->
+            <div class="section animated">
+                <div class="section-header">
+                    <h2>Growth & Adoption Metrics</h2>
+                    <p>Track HIP-3 ecosystem growth</p>
+                </div>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Last Hour</h3>
+                        </div>
+                        <div id="growth1h">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Last 24 Hours</h3>
+                        </div>
+                        <div id="growth24h">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Last 7 Days</h3>
+                        </div>
+                        <div id="growth7d">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Growth Rate Charts -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Volume Growth Trends</h2>
+                        <p>Comparing different time windows</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="growthTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DEPLOYERS TAB -->
+        <div id="deployers-tab" class="tab-content">
+            <!-- Deployer Economics -->
+            <div class="section animated">
+                <div class="section-header">
+                    <h2>Deployer Economics & Revenue</h2>
+                    <p>Fee breakdown and revenue tracking for each HIP-3 deployer</p>
+                </div>
+                <div id="deployerCards" class="grid grid-3">
+                    <div class="loading">Loading deployer data...</div>
+                </div>
+            </div>
+
+            <!-- Revenue Breakdown Chart -->
+            <div class="section animated">
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Revenue Distribution</h2>
+                        <p>Platform revenue by deployer</p>
+                    </div>
+                    <div class="chart-container-small">
+                        <canvas id="revenueByDeployerChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/hip3-analytics.js"></script>
+</body>
+</html>

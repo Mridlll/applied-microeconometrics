@@ -5,12 +5,14 @@ Serves real-time trading data via REST API
 
 from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
+import requests
 from hyperliquid_api import HyperliquidAPI
 from analytics import PlatformAnalytics
 from advanced_analytics import HyperliquidAdvancedAnalytics
 from leaderboard_analytics import LeaderboardAnalytics
 from xyz_markets import XYZMarketsClient
 from hip3_ws_analytics import HIP3WebSocketAnalytics
+from hip3_advanced_analytics import HIP3AdvancedAnalytics
 import os
 import json
 from datetime import datetime, timedelta
@@ -38,6 +40,9 @@ xyz_connected = False
 # Initialize HIP-3 Analytics (will be set after WebSocket connection)
 hip3_analytics = None
 
+# Initialize HIP-3 Advanced Analytics
+hip3_advanced = HIP3AdvancedAnalytics(use_testnet=False)
+
 # Cache for reducing API calls
 cache = {
     "market_summary": {"data": None, "timestamp": None},
@@ -60,6 +65,20 @@ def index():
     """Serve the main dashboard page"""
     frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend')
     return send_from_directory(frontend_path, 'index.html')
+
+
+@app.route('/hip3')
+def hip3_analytics():
+    """Serve the HIP-3 advanced analytics page"""
+    frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend')
+    return send_from_directory(frontend_path, 'hip3-analytics.html')
+
+
+@app.route('/js/<path:filename>')
+def serve_js(filename):
+    """Serve JavaScript files"""
+    frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend')
+    return send_from_directory(os.path.join(frontend_path, 'js'), filename)
 
 
 @app.route('/api/health')
@@ -549,6 +568,231 @@ def get_hip3_quick_summary():
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================================
+# HIP-3 ADVANCED ANALYTICS ENDPOINTS
+# ============================================================================
+
+@app.route('/api/hip3/deployers')
+def get_all_hip3_deployers():
+    """Get all HIP-3 deployer information (xyz, flx, vntl)"""
+    try:
+        deployers = hip3_advanced.get_all_hip3_deployers()
+        return jsonify({
+            "timestamp": datetime.now().isoformat(),
+            "total_deployers": len(deployers),
+            "deployers": deployers
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/deployer-economics')
+def get_deployer_economics():
+    """
+    Get deployer economics and revenue tracking
+    Query params: hours_back (default 24)
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=float)
+        economics = hip3_advanced.get_deployer_economics(hours_back)
+        return jsonify(economics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/oracle-performance')
+def get_oracle_performance():
+    """
+    Get oracle performance metrics for a specific HIP-3 dex
+    Query params: dex (default 'xyz')
+    """
+    try:
+        dex = request.args.get('dex', 'xyz', type=str)
+        oracle_metrics = hip3_advanced.get_oracle_performance(dex)
+        return jsonify(oracle_metrics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/market-maturity')
+def get_market_maturity():
+    """
+    Get market maturity and lifecycle analysis
+    Query params: dex (default 'xyz')
+    """
+    try:
+        dex = request.args.get('dex', 'xyz', type=str)
+        maturity = hip3_advanced.get_market_maturity_analysis(dex)
+        return jsonify(maturity)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/leaderboard')
+def get_trader_leaderboard():
+    """
+    Get top traders leaderboard for HIP-3 markets
+    Query params: hours_back (default 24), limit (default 50), dex (default 'xyz')
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=float)
+        limit = request.args.get('limit', 50, type=int)
+        dex = request.args.get('dex', 'xyz', type=str)
+
+        leaderboard = hip3_advanced.get_trader_leaderboard(hours_back, limit, dex)
+        return jsonify(leaderboard)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/correlations')
+def get_cross_market_correlations():
+    """
+    Get cross-market price correlations
+    Query params: hours_back (default 24), dex (default 'xyz')
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=float)
+        dex = request.args.get('dex', 'xyz', type=str)
+
+        correlations = hip3_advanced.get_cross_market_correlations(hours_back, dex)
+        return jsonify(correlations)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/growth-metrics')
+def get_growth_metrics():
+    """
+    Get HIP-3 growth and adoption metrics
+    Query params: dex (default 'xyz')
+    """
+    try:
+        dex = request.args.get('dex', 'xyz', type=str)
+        growth = hip3_advanced.get_growth_metrics(dex)
+        return jsonify(growth)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/trade-size-distribution')
+def get_trade_size_distribution():
+    """
+    Get trade size distribution analysis
+    Query params: hours_back (default 24), dex (default 'xyz')
+    """
+    try:
+        hours_back = request.args.get('hours_back', 24, type=float)
+        dex = request.args.get('dex', 'xyz', type=str)
+
+        distribution = hip3_advanced.get_trade_size_distribution(hours_back, dex)
+        return jsonify(distribution)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/all-markets')
+def get_all_hip3_markets():
+    """
+    Get ALL HIP-3 markets from all deployers (xyz, flx, vntl)
+    with proper OI calculation and active filtering
+    """
+    try:
+        dex_configs = [
+            {"name": "xyz", "quote": "USDC"},
+            {"name": "flx", "quote": "USDH"},
+            {"name": "vntl", "quote": "USDH"}
+        ]
+
+        all_markets = []
+
+        for config in dex_configs:
+            dex_name = config["name"]
+            quote = config["quote"]
+
+            # Fetch market data
+            response = requests.post(
+                f"{hip3_advanced.api_url}/info",
+                json={"type": "metaAndAssetCtxs", "dex": dex_name},
+                timeout=10
+            )
+
+            if response.ok:
+                data = response.json()
+                metadata = data[0] if len(data) > 0 else {}
+                asset_ctxs = data[1] if len(data) > 1 else []
+
+                universe = metadata.get("universe", [])
+
+                for i, market in enumerate(universe):
+                    if i >= len(asset_ctxs):
+                        break
+
+                    coin_name = market.get("name", "N/A")
+                    is_delisted = market.get("isDelisted", False)
+                    ctx = asset_ctxs[i]
+
+                    mark_px = float(ctx.get('markPx', 0))
+                    day_volume = float(ctx.get('dayNtlVlm', 0))
+                    oi_contracts = float(ctx.get('openInterest', 0))
+                    funding = float(ctx.get('funding', 0))
+                    prev_day_px = float(ctx.get('prevDayPx', mark_px))
+
+                    # CORRECT OI CALCULATION: contracts * mark_price
+                    oi_usd = oi_contracts * mark_px
+
+                    # Calculate 24h price change
+                    price_change_pct = ((mark_px - prev_day_px) / prev_day_px * 100) if prev_day_px > 0 else 0
+
+                    # Only include active markets with volume > 0
+                    if day_volume > 0 and not is_delisted:
+                        all_markets.append({
+                            "dex": dex_name,
+                            "quote": quote,
+                            "market": coin_name,
+                            "mark_price": mark_px,
+                            "price_change_24h_pct": price_change_pct,
+                            "volume_24h": day_volume,
+                            "open_interest_usd": oi_usd,
+                            "funding_rate": funding,
+                            "oracle_price": float(ctx.get('oraclePx', 0)),
+                            "premium": float(ctx.get('premium', 0)),
+                            "max_leverage": market.get("maxLeverage", 0)
+                        })
+
+        # Sort by volume descending
+        all_markets.sort(key=lambda x: x['volume_24h'], reverse=True)
+
+        # Calculate totals
+        total_volume = sum(m['volume_24h'] for m in all_markets)
+        total_oi = sum(m['open_interest_usd'] for m in all_markets)
+
+        # Summary by dex
+        dex_summary = {}
+        for config in dex_configs:
+            dex_name = config["name"]
+            dex_markets = [m for m in all_markets if m['dex'] == dex_name]
+
+            dex_summary[dex_name] = {
+                "total_markets": len(dex_markets),
+                "total_volume_24h": sum(m['volume_24h'] for m in dex_markets),
+                "total_oi_usd": sum(m['open_interest_usd'] for m in dex_markets),
+                "quote_currency": config["quote"]
+            }
+
+        return jsonify({
+            "timestamp": datetime.now().isoformat(),
+            "total_markets": len(all_markets),
+            "total_volume_24h": total_volume,
+            "total_open_interest_usd": total_oi,
+            "markets": all_markets,
+            "summary_by_dex": dex_summary
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("Starting Hyperliquid Dashboard Server...")
     print("Dashboard will be available at: http://localhost:5000")
@@ -563,6 +807,11 @@ if __name__ == '__main__':
         # Initialize HIP-3 analytics with connected client
         hip3_analytics = HIP3WebSocketAnalytics(xyz_client)
         print("HIP-3 Analytics initialized")
+
+        # Connect trade database to advanced analytics
+        if xyz_client.trade_db:
+            hip3_advanced.set_trade_database(xyz_client.trade_db)
+            print("HIP-3 Advanced Analytics connected to database")
     else:
         print("Warning: XYZ WebSocket connection failed")
 
