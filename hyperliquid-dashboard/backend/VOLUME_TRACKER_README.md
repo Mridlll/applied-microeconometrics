@@ -2,6 +2,8 @@
 
 Track your personal trading volume relative to total trade.xyz (HIP-3 XYZ equity perpetuals) volume.
 
+**Created by:** Melon Melon Head (melon@tradexyz.community)
+
 ## What It Does
 
 ✅ Shows your XYZ trading volume vs total market volume

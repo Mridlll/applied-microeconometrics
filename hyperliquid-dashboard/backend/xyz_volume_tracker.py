@@ -3,6 +3,9 @@
 Trade.XYZ Volume Tracker
 Track your personal trading volume relative to total trade.xyz volume
 
+Author: Melon Melon Head
+Contact: melon@tradexyz.community
+
 Usage:
     python3 xyz_volume_tracker.py <YOUR_WALLET_ADDRESS>
     python3 xyz_volume_tracker.py 0xYourAddressHere
