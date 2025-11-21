@@ -24,8 +24,15 @@ analytics = PlatformAnalytics(data_dir=os.path.join(os.path.dirname(__file__), '
 advanced = HyperliquidAdvancedAnalytics(use_testnet=False)
 leaderboard = LeaderboardAnalytics(use_testnet=False)
 
-# Initialize XYZ Markets WebSocket client
-xyz_client = XYZMarketsClient(use_testnet=False, max_trades_history=20000)
+# Initialize XYZ Markets WebSocket client with persistent database storage
+# - In-memory buffer: 10k trades for quick access
+# - Database: unlimited trades (billions) for comprehensive long-term analytics
+xyz_client = XYZMarketsClient(
+    use_testnet=False,
+    max_trades_history=10000,  # Small buffer for quick access
+    use_database=True,          # Enable SQLite database for billions of trades
+    db_path="xyz_trades.db"     # Database file path
+)
 xyz_connected = False
 
 # Initialize HIP-3 Analytics (will be set after WebSocket connection)

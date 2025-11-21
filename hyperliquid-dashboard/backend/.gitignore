@@ -26,3 +26,7 @@ Thumbs.db
 data/
 *.sqlite
 *.db
+
+# XYZ trades database
+xyz_trades.db
+test_trades.db

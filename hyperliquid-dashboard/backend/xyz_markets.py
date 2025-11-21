@@ -9,11 +9,13 @@ import threading
 import time
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
+from trade_database import TradeDatabase
 
 class XYZMarketsClient:
     """WebSocket client for XYZ HIP-3 equity perpetuals"""
 
-    def __init__(self, use_testnet: bool = False, max_trades_history: int = 10000):
+    def __init__(self, use_testnet: bool = False, max_trades_history: int = 10000,
+                 use_database: bool = True, db_path: str = "xyz_trades.db"):
         self.ws_url = (
             "wss://api.hyperliquid-testnet.xyz/ws" if use_testnet
             else "wss://api.hyperliquid.xyz/ws"
@@ -22,7 +24,7 @@ class XYZMarketsClient:
         self.connected = False
         self.market_data = {}
         self.callbacks = []
-        self.max_trades_history = max_trades_history  # Keep more history for analytics
+        self.max_trades_history = max_trades_history  # Keep small buffer for quick access
 
         # All known XYZ equity perps from perpDexs query
         self.xyz_assets = [
@@ -42,8 +44,15 @@ class XYZMarketsClient:
             "xyz:TSLA"
         ]
 
-        # Historical trades for analytics (all assets combined)
+        # In-memory buffer (small, for quick access to recent data)
         self.all_trades_history = []
+
+        # Database for persistent storage (billions of trades)
+        self.use_database = use_database
+        self.trade_db = None
+        if use_database:
+            self.trade_db = TradeDatabase(db_path=db_path, batch_size=100, batch_timeout=1.0)
+            print(f"Database storage enabled: {db_path}")
 
     def on_message(self, ws, message):
         """Handle incoming WebSocket messages"""
@@ -85,10 +94,15 @@ class XYZMarketsClient:
                                     **trade,
                                     "received_at": datetime.now().timestamp()
                                 }
+
+                                # Add to in-memory buffer (small, for quick access)
                                 self.all_trades_history.append(trade_with_timestamp)
-                                # Keep max history size
                                 if len(self.all_trades_history) > self.max_trades_history:
                                     self.all_trades_history = self.all_trades_history[-self.max_trades_history:]
+
+                                # Add to database (async, for billions of trades)
+                                if self.trade_db:
+                                    self.trade_db.add_trade(trade_with_timestamp)
 
                                 # Update current price from latest trade
                                 latest_price = float(trade.get("px", 0))
@@ -170,10 +184,14 @@ class XYZMarketsClient:
         return self.connected
 
     def disconnect(self):
-        """Close WebSocket connection"""
+        """Close WebSocket connection and database"""
         if self.ws:
             self.ws.close()
         self.connected = False
+
+        # Close database connection
+        if self.trade_db:
+            self.trade_db.close()
 
     def register_callback(self, callback: Callable):
         """Register a callback function to be called when data updates"""
@@ -193,11 +211,21 @@ class XYZMarketsClient:
 
     def get_trades_since(self, seconds_ago: int) -> List[Dict]:
         """Get trades from the last N seconds"""
+        # Use database if available (can handle billions of trades)
+        if self.trade_db:
+            return self.trade_db.get_trades_since(seconds_ago)
+
+        # Fallback to in-memory buffer (limited to max_trades_history)
         cutoff = datetime.now().timestamp() - seconds_ago
         return [t for t in self.all_trades_history if t.get("received_at", 0) >= cutoff]
 
     def get_analytics_summary(self) -> Dict:
         """Get quick analytics summary from collected trades"""
+        # Use database if available (much faster for large datasets)
+        if self.trade_db:
+            return self.trade_db.get_summary_stats()
+
+        # Fallback to in-memory calculation
         if not self.all_trades_history:
             return {
                 "total_trades": 0,
