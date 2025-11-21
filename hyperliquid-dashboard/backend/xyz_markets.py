@@ -7,6 +7,7 @@ import websocket
 import json
 import threading
 import time
+import requests
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
 from trade_database import TradeDatabase
@@ -16,6 +17,10 @@ class XYZMarketsClient:
 
     def __init__(self, use_testnet: bool = False, max_trades_history: int = 10000,
                  use_database: bool = True, db_path: str = "xyz_trades.db"):
+        self.api_url = (
+            "https://api.hyperliquid-testnet.xyz" if use_testnet
+            else "https://api.hyperliquid.xyz"
+        )
         self.ws_url = (
             "wss://api.hyperliquid-testnet.xyz/ws" if use_testnet
             else "wss://api.hyperliquid.xyz/ws"
@@ -26,23 +31,9 @@ class XYZMarketsClient:
         self.callbacks = []
         self.max_trades_history = max_trades_history  # Keep small buffer for quick access
 
-        # All known XYZ equity perps from perpDexs query
-        self.xyz_assets = [
-            "xyz:XYZ100",
-            "xyz:NVDA",
-            "xyz:AAPL",
-            "xyz:AMZN",
-            "xyz:COIN",
-            "xyz:GOLD",
-            "xyz:GOOGL",
-            "xyz:HOOD",
-            "xyz:INTC",
-            "xyz:META",
-            "xyz:MSFT",
-            "xyz:ORCL",
-            "xyz:PLTR",
-            "xyz:TSLA"
-        ]
+        # Dynamically fetch all XYZ equity perps from API
+        self.xyz_assets = self._fetch_xyz_assets()
+        print(f"Discovered {len(self.xyz_assets)} XYZ equity perpetuals")
 
         # In-memory buffer (small, for quick access to recent data)
         self.all_trades_history = []
@@ -53,6 +44,52 @@ class XYZMarketsClient:
         if use_database:
             self.trade_db = TradeDatabase(db_path=db_path, batch_size=100, batch_timeout=1.0)
             print(f"Database storage enabled: {db_path}")
+
+    def _fetch_xyz_assets(self) -> List[str]:
+        """
+        Dynamically fetch all XYZ equity perpetual markets from API
+        Returns list of asset names (e.g., ['xyz:XYZ100', 'xyz:NVDA', ...])
+        """
+        try:
+            response = requests.post(
+                f"{self.api_url}/info",
+                json={"type": "meta", "dex": "xyz"},
+                timeout=10
+            )
+
+            if response.ok:
+                meta = response.json()
+                universe = meta.get("universe", [])
+
+                # Extract all asset names (including delisted ones)
+                assets = [asset["name"] for asset in universe if "name" in asset]
+
+                # Filter to only active assets (exclude delisted)
+                active_assets = [
+                    asset["name"] for asset in universe
+                    if "name" in asset and not asset.get("isDelisted", False)
+                ]
+
+                print(f"Total XYZ markets: {len(assets)} ({len(active_assets)} active, {len(assets) - len(active_assets)} delisted)")
+
+                # Return active assets only for trading data collection
+                return active_assets
+            else:
+                print(f"Failed to fetch XYZ assets: {response.status_code}")
+                # Fallback to known assets
+                return self._get_fallback_assets()
+
+        except Exception as e:
+            print(f"Error fetching XYZ assets: {e}")
+            return self._get_fallback_assets()
+
+    def _get_fallback_assets(self) -> List[str]:
+        """Fallback list of known XYZ assets if API fetch fails"""
+        return [
+            "xyz:XYZ100", "xyz:NVDA", "xyz:AAPL", "xyz:AMZN", "xyz:COIN",
+            "xyz:GOLD", "xyz:GOOGL", "xyz:HOOD", "xyz:INTC", "xyz:META",
+            "xyz:MSFT", "xyz:ORCL", "xyz:PLTR", "xyz:TSLA"
+        ]
 
     def on_message(self, ws, message):
         """Handle incoming WebSocket messages"""
