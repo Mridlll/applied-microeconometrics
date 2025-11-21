@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Callable
 class XYZMarketsClient:
     """WebSocket client for XYZ HIP-3 equity perpetuals"""
 
-    def __init__(self, use_testnet: bool = False):
+    def __init__(self, use_testnet: bool = False, max_trades_history: int = 10000):
         self.ws_url = (
             "wss://api.hyperliquid-testnet.xyz/ws" if use_testnet
             else "wss://api.hyperliquid.xyz/ws"
@@ -22,6 +22,7 @@ class XYZMarketsClient:
         self.connected = False
         self.market_data = {}
         self.callbacks = []
+        self.max_trades_history = max_trades_history  # Keep more history for analytics
 
         # All known XYZ equity perps from perpDexs query
         self.xyz_assets = [
@@ -40,6 +41,9 @@ class XYZMarketsClient:
             "xyz:PLTR",
             "xyz:TSLA"
         ]
+
+        # Historical trades for analytics (all assets combined)
+        self.all_trades_history = []
 
     def on_message(self, ws, message):
         """Handle incoming WebSocket messages"""
@@ -73,8 +77,18 @@ class XYZMarketsClient:
                                 if "recent_trades" not in self.market_data[coin]:
                                     self.market_data[coin]["recent_trades"] = []
                                 self.market_data[coin]["recent_trades"].append(trade)
-                                # Keep only last 50 trades
+                                # Keep only last 50 trades per asset
                                 self.market_data[coin]["recent_trades"] = self.market_data[coin]["recent_trades"][-50:]
+
+                                # Store in all_trades_history for analytics
+                                trade_with_timestamp = {
+                                    **trade,
+                                    "received_at": datetime.now().timestamp()
+                                }
+                                self.all_trades_history.append(trade_with_timestamp)
+                                # Keep max history size
+                                if len(self.all_trades_history) > self.max_trades_history:
+                                    self.all_trades_history = self.all_trades_history[-self.max_trades_history:]
 
                                 # Update current price from latest trade
                                 latest_price = float(trade.get("px", 0))
@@ -172,6 +186,54 @@ class XYZMarketsClient:
     def get_asset_data(self, asset_name: str) -> Optional[Dict]:
         """Get market data for a specific XYZ asset"""
         return self.market_data.get(asset_name)
+
+    def get_all_trades_history(self) -> List[Dict]:
+        """Get all historical trades collected via WebSocket"""
+        return self.all_trades_history.copy()
+
+    def get_trades_since(self, seconds_ago: int) -> List[Dict]:
+        """Get trades from the last N seconds"""
+        cutoff = datetime.now().timestamp() - seconds_ago
+        return [t for t in self.all_trades_history if t.get("received_at", 0) >= cutoff]
+
+    def get_analytics_summary(self) -> Dict:
+        """Get quick analytics summary from collected trades"""
+        if not self.all_trades_history:
+            return {
+                "total_trades": 0,
+                "total_volume": 0,
+                "unique_wallets": 0,
+                "assets_active": 0
+            }
+
+        total_volume = 0
+        unique_wallets = set()
+        assets_active = set()
+
+        for trade in self.all_trades_history:
+            price = float(trade.get("px", 0))
+            size = abs(float(trade.get("sz", 0)))
+            total_volume += price * size
+
+            coin = trade.get("coin", "")
+            if coin:
+                assets_active.add(coin)
+
+            users = trade.get("users", [])
+            for user in users:
+                if user and user != "0x0000000000000000000000000000000000000000":
+                    unique_wallets.add(user.lower())
+
+        return {
+            "total_trades": len(self.all_trades_history),
+            "total_volume": total_volume,
+            "unique_wallets": len(unique_wallets),
+            "assets_active": len(assets_active),
+            "oldest_trade_age_seconds": (
+                datetime.now().timestamp() - self.all_trades_history[0].get("received_at", datetime.now().timestamp())
+                if self.all_trades_history else 0
+            )
+        }
 
 
 def test_xyz_websocket():

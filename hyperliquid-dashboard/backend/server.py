@@ -10,6 +10,7 @@ from analytics import PlatformAnalytics
 from advanced_analytics import HyperliquidAdvancedAnalytics
 from leaderboard_analytics import LeaderboardAnalytics
 from xyz_markets import XYZMarketsClient
+from hip3_ws_analytics import HIP3WebSocketAnalytics
 import os
 import json
 from datetime import datetime, timedelta
@@ -24,8 +25,11 @@ advanced = HyperliquidAdvancedAnalytics(use_testnet=False)
 leaderboard = LeaderboardAnalytics(use_testnet=False)
 
 # Initialize XYZ Markets WebSocket client
-xyz_client = XYZMarketsClient(use_testnet=False)
+xyz_client = XYZMarketsClient(use_testnet=False, max_trades_history=20000)
 xyz_connected = False
+
+# Initialize HIP-3 Analytics (will be set after WebSocket connection)
+hip3_analytics = None
 
 # Cache for reducing API calls
 cache = {
@@ -445,6 +449,99 @@ def get_xyz_asset(asset_name):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/hip3/analytics')
+def get_hip3_comprehensive_analytics():
+    """
+    Get comprehensive HIP-3 XYZ markets analytics
+    Query params: hours_back (default 24)
+    """
+    try:
+        if not hip3_analytics:
+            return jsonify({"error": "HIP-3 analytics not initialized"}), 503
+
+        hours_back = request.args.get('hours_back', 24, type=float)
+        analytics_data = hip3_analytics.get_comprehensive_analytics(hours_back)
+
+        return jsonify(analytics_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/platform-metrics')
+def get_hip3_platform_metrics():
+    """
+    Get HIP-3 platform-level metrics
+    Total volume, fees, unique wallets, etc.
+    Query params: hours_back (default 24)
+    """
+    try:
+        if not hip3_analytics:
+            return jsonify({"error": "HIP-3 analytics not initialized"}), 503
+
+        hours_back = request.args.get('hours_back', 24, type=float)
+        metrics = hip3_analytics.get_platform_metrics(hours_back)
+
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/wallet-analytics')
+def get_hip3_wallet_analytics():
+    """
+    Get HIP-3 wallet analytics
+    Includes top wallets, average trade size, frequency, duration
+    Query params: hours_back (default 24), limit (default 50)
+    """
+    try:
+        if not hip3_analytics:
+            return jsonify({"error": "HIP-3 analytics not initialized"}), 503
+
+        hours_back = request.args.get('hours_back', 24, type=float)
+        limit = request.args.get('limit', 50, type=int)
+
+        wallet_data = hip3_analytics.get_wallet_analytics(hours_back)
+
+        # Limit results
+        wallet_data["top_wallets"] = wallet_data["top_wallets"][:limit]
+
+        return jsonify(wallet_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/asset-breakdown')
+def get_hip3_asset_breakdown():
+    """
+    Get detailed breakdown for each HIP-3 XYZ asset
+    Query params: hours_back (default 24)
+    """
+    try:
+        if not hip3_analytics:
+            return jsonify({"error": "HIP-3 analytics not initialized"}), 503
+
+        hours_back = request.args.get('hours_back', 24, type=float)
+        asset_data = hip3_analytics.get_asset_breakdown(hours_back)
+
+        return jsonify({
+            "timeframe_hours": hours_back,
+            "assets": asset_data,
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/hip3/quick-summary')
+def get_hip3_quick_summary():
+    """Get quick HIP-3 summary from WebSocket client"""
+    try:
+        summary = xyz_client.get_analytics_summary()
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("Starting Hyperliquid Dashboard Server...")
     print("Dashboard will be available at: http://localhost:5000")
@@ -455,6 +552,10 @@ if __name__ == '__main__':
     if xyz_connected:
         print("XYZ WebSocket connected successfully")
         print(f"Tracking {len(xyz_client.xyz_assets)} XYZ equity perpetuals")
+
+        # Initialize HIP-3 analytics with connected client
+        hip3_analytics = HIP3WebSocketAnalytics(xyz_client)
+        print("HIP-3 Analytics initialized")
     else:
         print("Warning: XYZ WebSocket connection failed")
 
